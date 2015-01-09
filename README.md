@@ -6,9 +6,9 @@ Program has NOT been run with Valgrind or any other programs checking for memory
 But I can promise you I have not added any code trying to ruin your computer or fetch information about you.
 
 Wishes from the future:
--More solid and secure code and database manipulation.
--GUI
--Network capability
--Smartphone capability
+(1) More solid and secure code and database manipulation.
+(2) GUI
+(3) Network capability
+(4) Smartphone capability
 
 *See http://www.sqlite.org/ for download/interface and information on SQLite.
