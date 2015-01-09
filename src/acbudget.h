@@ -1,4 +1,4 @@
-#include "sql/sqlite3.h"
+#include "../sql/sqlite3.h"
 #include<stdio.h>
 #include<stdlib.h>
 #include<string.h>
@@ -7,11 +7,14 @@
 #define PRINT_LEN 1024
 #define INSERT_LEN 256
 #define SELECT_LEN 256
+#define DATE_LEN 11
+#define COMMENT_LEN 36
+#define TYPE_LEN 16
+#define AMOUNT_LEN 16
 #define ID_LEN 6
 #define INPUT_LEN 350
 #define DATABASE "regnskap.db"
-
-unsigned long INDEX = 0L;
+#define YEAR "2014"
 
 static int callback(void *NotUsed, int argc, char **argv, char **azColName);
 static int indexcallback(void *NotUsed, int argc, char **argv, char **azColName);
