@@ -5,6 +5,9 @@ Database must be set up beforehand in current state. Also, be careful not to del
 Program has NOT been run with Valgrind or any other programs checking for memory-leaks, unused/uninitialized variables etc. As written in licence: Use at your own risk! 
 But I can promise you I have not added any code trying to ruin your computer or fetch information about you.
 
+Current features:
+- insertion to database - read from DNB and Sparebanken Sør files - manual select statements on database - configuration file for easy default setup -
+
 Wishes from the future:
 (1) More solid and secure code and database manipulation.
 (2) GUI
