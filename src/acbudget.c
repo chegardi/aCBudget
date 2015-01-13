@@ -58,7 +58,7 @@ int insert(char *command, sqlite3 *database)
 			*command = '\0';
 		} else {
 			token = strtok(command, ",");
-			insert += snprintf(insert, INSERT_LEN, "insert into regnskap values(");
+			insert += snprintf(insert, INSERT_LEN, "insert into %s values(", TABLE);
 			//	read and store date, comment and type
 			for (i =0; i<3; i++) {
 				if (token != NULL) {
@@ -105,7 +105,7 @@ int insert(char *command, sqlite3 *database)
  *	Select command
  *	Executes commands from user as long as q/quit is not typed
  */
-char *select(sqlite3 *database)
+char *select(char * command, sqlite3 *database)
 {
 	int len, counter = 0;
 	char select[250], *zErrMsg;
@@ -115,10 +115,13 @@ char *select(sqlite3 *database)
 		if ( sqlite3_exec(database, select, callback, 0, &zErrMsg) != SQLITE_OK) {
 			fprintf(stderr, "SQL error: %s\n", zErrMsg);
 			sqlite3_free(zErrMsg);
+		} else {
+			counter++;
 		}
 		len = get_command(select, "select"); select[len-1] = '\0';
 	}
-	return "\0";
+	snprintf(command, COMMAND_LEN, "%d commands excuted\n", counter);
+	return command;
 }
 
 /*
@@ -277,7 +280,7 @@ int readDNB(FILE *fp, sqlite3 *database)
 		 *	finnished adding my personal information for year 2014
 		 */
 		printf("@Rows with equal date and/or amount:\n");
-		snprintf(insert_into, INSERT_LEN, "select * from regnskap where amount like %s or date like '%s';",amount, date);
+		snprintf(insert_into, INSERT_LEN, "select * from %s where amount like %s or date like '%s';", TABLE, amount, date);
 		//	Execute sql select statement
 		if ( sqlite3_exec(database, insert_into, callback, 0, &zErrMsg) != SQLITE_OK) {
 			fprintf(stderr, "SQL error: %s\n", zErrMsg);
@@ -326,7 +329,7 @@ int readDNB(FILE *fp, sqlite3 *database)
 				char id[ID_LEN];
 				generate_id(id);
 				//	Generate SQL statement for insertion based on information given
-				snprintf(insert_into, INSERT_LEN, "insert into regnskap values('%s', '%s', '%s', %s, '%s');", date, comment, type, amount, id);
+				snprintf(insert_into, INSERT_LEN, "insert into %s values('%s', '%s', '%s', %s, '%s');", TABLE, date, comment, type, amount, id);
 				#ifdef DEBUG
 				fprintf(stderr, "%s\n", insert_into);
 				#endif
@@ -424,7 +427,7 @@ int readSBS(FILE *fp, sqlite3 *database)
 		fprintf(stderr, "amount: %s\n", token);
 		#endif
 		//	All information gathered, check for equal date and/or amount in database
-		snprintf(insert_into, INSERT_LEN, "select * from regnskap where amount like %s or date like '%s';",amount, date);
+		snprintf(insert_into, INSERT_LEN, "select * from %s where amount like %s or date like '%s';", TABLE, amount, date);
 		if ( sqlite3_exec(database, insert_into, callback, 0, &zErrMsg) != SQLITE_OK) {
 			fprintf(stderr, "SQL error: %s\n", zErrMsg);
 			sqlite3_free(zErrMsg);
@@ -451,7 +454,7 @@ int readSBS(FILE *fp, sqlite3 *database)
 			char id[ID_LEN];
 			generate_id(id);
 			//	Store SQL statement for execution
-			snprintf(insert_into, INSERT_LEN, "insert into regnskap values('%s', '%s', '%s', %s, '%s');", date, comment, type, amount, id);
+			snprintf(insert_into, INSERT_LEN, "insert into %s values('%s', '%s', '%s', %s, '%s');", TABLE, date, comment, type, amount, id);
 			//	Execute SQL statement
 			fprintf(stderr, "inserted \"%s\"\n", insert_into);
 			if ( sqlite3_exec(database, insert_into, callback, 0, &zErrMsg) != SQLITE_OK ) {
@@ -508,10 +511,106 @@ char *xstrtok(char *line, char *delims)
 void printhelp(char *command)
 {
 	command += snprintf(command, COMMAND_LEN, "aCBudget.help >\n");
-	command += snprintf(command, COMMAND_LEN, "%-10s - %s\n", "read", "read insertions from file");
-	command += snprintf(command, COMMAND_LEN, "%-10s - %s\n", "select", "write commands directly to database");
-	command += snprintf(command, COMMAND_LEN, "%-10s - %s\n", "insert", "for easy insertions to database");
-	command += snprintf(command, COMMAND_LEN, "%-10s - %s\n", "help", "this menu");
+	command += snprintf(command, COMMAND_LEN, "%-6s - %s\n", "read", "read insertions from file");
+	command += snprintf(command, COMMAND_LEN, "%-6s - %s\n", "select", "write commands directly to database");
+	command += snprintf(command, COMMAND_LEN, "%-6s - %s\n", "print", "prints out balance for all accounts");
+	command += snprintf(command, COMMAND_LEN, "%-6s - %s\n", "insert", "for easy insertions to database");
+	command += snprintf(command, COMMAND_LEN, "%-6s - %s\n", "help", "this menu");
+}
+
+/*
+ *	Provides runtime configuration-options
+ */
+char *config(char *command, sqlite3 *database)
+{
+	int len;
+	len = get_command(command, "config"); command[len-1] = '\0';
+	while ((strncmp(command, "e\0", 2) != 0) && (strncmp(command, "end\0", 4) != 0)) {
+		if (strncmp(command, "save\0", 5) == 0)
+		{
+			save_config(command);
+			printf("%s", command);
+		}
+		else if (strncmp(command, "load\0", 5) == 0)
+		{
+			configurate(command, database);
+			printf("%s", command);
+		}
+		else
+		{
+			printf("No such command: %s\n", command);
+		}
+		len = get_command(command, "config"); command[len-1] = '\0';
+	}
+	return command;
+}
+
+/*
+ *	Saves current configuration to 'config.ini'
+ */
+void save_config(char *command)
+{
+	FILE *config_file;
+	config_file = fopen("config.ini", "r");
+	if (config_file == NULL)
+	{
+		config_file = fopen("config.ini", "w");
+		fprintf(config_file, "#configuration file for aCBudget\n");
+		fprintf(config_file, "database=%s\n", DATABASE);
+		fprintf(config_file, "year=%s\n", YEAR);
+		fprintf(config_file, "table=%s\n", TABLE);
+		fclose(config_file);
+		snprintf(command, COMMAND_LEN, "Settings saved to new file 'config.ini'\n");
+		return;
+	}
+	else
+	{
+		char *token, tmpname[L_tmpnam];
+		FILE *new_file;
+		new_file = fopen(tmpnam(tmpname), "w");
+		int counter = 1, file_size = 0;
+		do {
+			if (fgets(command, COMMAND_LEN, config_file) != NULL)
+			{
+				counter++;
+				if (command[0] != '#')
+				{
+					token = strtok(command, "=");
+					if (strncmp(token, "year", 4) == 0) {
+						token = strtok(NULL, "");
+						fprintf(new_file, "year=%s\n", YEAR);
+					} else if (strncmp(token, "table", 5) == 0) {
+						token = strtok(NULL, "");
+						fprintf(new_file, "table=%s\n", TABLE);
+					} else if (strncmp(token, "database", 8) == 0) {
+						token = strtok(NULL, "");
+						fprintf(new_file, "database=%s\n", DATABASE);
+					}
+				}
+				else
+				{
+					fprintf(new_file, "%s", command);
+				}
+			}
+			else if (command == NULL)
+			{
+				fprintf(stderr, "ERROR ON LINE #%d IN 'config.ini'\n", counter);
+				exit(EXIT_FAILURE);
+			}
+		} while (!feof(config_file) && counter < 10);
+		fclose(config_file);
+		fclose(new_file);
+		if (remove("config.ini"))
+		{
+			printf("Failed to remove old 'config.ini';\n%s\n", strerror(errno));
+		}
+		if (rename(tmpname, "config.ini"))
+		{
+			printf("Failed to rename new 'config.ini';\n%s\n", strerror(errno));
+		}
+		snprintf(command, COMMAND_LEN, "Settings saved to 'config.ini'\n");
+	}
+	return;
 }
 
 /*
@@ -522,15 +621,97 @@ char *execute_command(char *command, sqlite3 *database)
 	if (strncmp(command, "insert\0", 7) == 0) {
 		snprintf(command, COMMAND_LEN, "%d insertions made.\n", insert(command, database));
 	} else if (strncmp(command, "select\0", 6) == 0) {
-		return select(database);
+		return select(command, database);
 	} else if (strncmp(command, "read\0", 5) == 0) {
 		snprintf(command, COMMAND_LEN, "%d insertions made.\n", readfile(command, database));
+	} else if (strncmp(command, "config\0", 7) == 0) {
+		return config(command, database);
 	} else if ((strncmp(command, "help\0", 5) == 0) || (strncmp(command, "h\0", 2) == 0)) {
 		printhelp(command);
 	} else {
 		printf("aCBudget.%s > no such command\n", command);
 	}
 	return command;
+}
+
+/*
+ *	Fetches/creates default configuration in 'config.cfg' file
+ */
+void configurate(char *command, sqlite3 *db) {
+	#ifdef DEBUG
+	fprintf(stderr, "Configurating..\n");
+	#endif
+	FILE *config_file;
+	config_file = fopen("config.ini", "r");
+	if (config_file == NULL)
+	{
+		#ifdef DEBUG
+		fprintf(stderr, "Creating 'config.ini'\n");
+		#endif
+		DATABASE = malloc(sizeof(char)*strlen("regnskap.db"));
+		strcpy(DATABASE, "regnskap.db");
+		YEAR = malloc(sizeof(char)*strlen("2014"));
+		strcpy(YEAR, "2014");
+		TABLE = malloc(sizeof(char)*strlen("r2014"));
+		strcpy(TABLE, "r2014");
+		config_file = fopen("config.ini", "w");
+		fprintf(config_file, "#configuration file for aCBudget\n");
+		fprintf(config_file, "database=%s\n", DATABASE);
+		fprintf(config_file, "year=%s\n", YEAR);
+		fprintf(config_file, "table=%s\n", TABLE);
+		fclose(config_file);
+		#ifdef DEBUG
+		fprintf(stderr, "'config.ini' created\n");
+		#endif
+		snprintf(command, COMMAND_LEN, "'config.ini' created and default settings loaded\n");
+	}
+	else
+	{
+		int counter = 1;
+		char *token;
+		do {
+			if (fscanf(config_file, "%s\n", command) > COMMAND_LEN)
+			{
+				fprintf(stderr, "ERROR ON LINE #%d IN 'config.ini'\nVALUE TOO LONG\n", counter);
+				exit(EXIT_FAILURE);
+			}
+			counter++;
+			if (command[0] != '#')
+			{
+				token = strtok(command, "=");
+				if (strncmp(token, "year", 4) == 0) {
+					token = strtok(NULL, "");
+					free(YEAR);
+					YEAR = malloc(sizeof(char)*strlen(token));
+					strcpy(YEAR, token);
+					#ifdef DEBUG
+					fprintf(stderr, "YEAR=%s\n", YEAR);
+					#endif
+				} else if (strncmp(token, "table", 5) == 0) {
+					token = strtok(NULL, "");
+					free(TABLE);
+					TABLE = malloc(sizeof(char)*strlen(token));
+					strcpy(TABLE, token);
+					#ifdef DEBUG
+					fprintf(stderr, "TABLE=%s\n", TABLE);
+					#endif
+				} else if (strncmp(token, "database", 8) == 0) {
+					token = strtok(NULL, "");
+					free(DATABASE);
+					DATABASE = malloc(sizeof(char)*strlen(token));
+					strcpy(DATABASE, token);
+					#ifdef DEBUG
+					fprintf(stderr, "DATABASE=%s\n", DATABASE);
+					#endif
+				}
+			}
+		} while (!feof(config_file));
+		fclose(config_file);
+		#ifdef DEBUG
+		fprintf(stderr, "'config.ini' imported\n");
+		#endif
+		snprintf(command, COMMAND_LEN, "Settings loaded from 'config.ini'\n");
+	}	
 }
 
 /*
@@ -565,6 +746,7 @@ int main(int argc, char **argv)
 		 *	Considering implementing a .config file for storing default/last
 		 *	used database, table, current year etc.
 		 */
+		configurate(command, database);
 		rc = sqlite3_open(DATABASE, &database);
 		if ( rc ) {
 			fprintf(stderr, "Can't open database: %s\n", sqlite3_errmsg(database));
