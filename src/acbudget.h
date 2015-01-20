@@ -9,7 +9,7 @@
 #define INSERT_LEN 256
 #define SELECT_LEN 256
 #define DATE_LEN 11
-#define COMMENT_LEN 36
+#define COMMENT_LEN 100
 #define TYPE_LEN 16
 #define AMOUNT_LEN 16
 #define ID_LEN 6

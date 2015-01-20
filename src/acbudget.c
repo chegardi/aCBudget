@@ -58,6 +58,7 @@ int insert(char *command, sqlite3 *database)
 			*command = '\0';
 		} else {
 			token = strtok(command, ",");
+			snprintf(insert, INSERT_LEN, "\0");
 			insert += snprintf(insert, INSERT_LEN, "insert into %s values(", TABLE);
 			//	read and store date, comment and type
 			for (i =0; i<3; i++) {
@@ -280,7 +281,7 @@ int readDNB(FILE *fp, sqlite3 *database)
 		 *	finnished adding my personal information for year 2014
 		 */
 		printf("@Rows with equal date and/or amount:\n");
-		snprintf(insert_into, INSERT_LEN, "select * from %s where amount like %s or date like '%s';", TABLE, amount, date);
+		snprintf(insert_into, INSERT_LEN, "select * from %s where date like '%s';", TABLE, date);
 		//	Execute sql select statement
 		if ( sqlite3_exec(database, insert_into, callback, 0, &zErrMsg) != SQLITE_OK) {
 			fprintf(stderr, "SQL error: %s\n", zErrMsg);
@@ -427,7 +428,7 @@ int readSBS(FILE *fp, sqlite3 *database)
 		fprintf(stderr, "amount: %s\n", token);
 		#endif
 		//	All information gathered, check for equal date and/or amount in database
-		snprintf(insert_into, INSERT_LEN, "select * from %s where amount like %s or date like '%s';", TABLE, amount, date);
+		snprintf(insert_into, INSERT_LEN, "select * from %s where date like '%s';", TABLE, date);
 		if ( sqlite3_exec(database, insert_into, callback, 0, &zErrMsg) != SQLITE_OK) {
 			fprintf(stderr, "SQL error: %s\n", zErrMsg);
 			sqlite3_free(zErrMsg);
@@ -524,17 +525,67 @@ void printhelp(char *command)
 char *config(char *command, sqlite3 *database)
 {
 	int len;
+	char *token;
 	len = get_command(command, "config"); command[len-1] = '\0';
 	while ((strncmp(command, "e\0", 2) != 0) && (strncmp(command, "end\0", 4) != 0)) {
-		if (strncmp(command, "save\0", 5) == 0)
+		if ((strncmp(command, "sv\0", 3) == 0) || (strncmp(command, "save\0", 5) == 0))
 		{
 			save_config(command);
 			printf("%s", command);
 		}
-		else if (strncmp(command, "load\0", 5) == 0)
+		else if ((strncmp(command, "ld\0", 3) == 0) || (strncmp(command, "load\0", 5) == 0))
 		{
 			configurate(command, database);
 			printf("%s", command);
+		}
+		else if ((strncmp(command, "sw\0", 3) == 0) || (strncmp(command, "show\0", 5) == 0))
+		{
+			printf("Database: %s\nTable: %s\nYear: %s\n", DATABASE, TABLE, YEAR);
+		}
+		else if ((strncmp(command, "yr\0", 2) == 0) ||(strncmp(command, "year\0", 5) == 0))
+		{
+			printf("Year=%s\n", YEAR);
+		}
+		else if ((strncmp(command, "tb\0", 3) == 0) || (strncmp(command, "table\0", 6) == 0))
+		{
+			printf("Table=%s\n", TABLE);
+		}
+		else if ((strncmp(command, "db\0", 3) == 0) || (strncmp(command, "database\0", 9) == 0))
+		{
+			printf("Database=%s\n", DATABASE);
+		}
+		else if ((strncmp(command, "h\0", 2) == 0) || (strncmp(command, "help\0", 5) == 0))
+		{
+			fprintf(stdout,
+			"Commands withing config:\n%-2s or %8s - %s\n%-2s or %8s - %s\n%-2s or %8s - %s\n%-2s or %8s - %s\n%-2s or %8s - %s\n%-2s or %8s - %s\n%-2s or %8s - %s\n%14s - %s\n",
+			"h", "help", "Displays this help text",
+			"sv", "save", "Saves the current configuration to file",
+			"ld", "load", "Loads configuration from file",
+			"sw", "show", "Shows the current configuration in program",
+			"db", "database", "Displays current database",
+			"tb", "table", "Displays current table in database",
+			"yr", "year", "Displays year used in insert command",
+			"variable=value", "sets variable to new value");
+		}
+		else if (strlen(xstrtok(command, "=")) > 3)
+		{
+			token = xstrtok(command, "=");
+			if (strncmp(token, "year", 4) == 0)
+			{
+				YEAR = xstrtok(NULL, "");
+			}
+			else if (strncmp(token, "table", 5) == 0)
+			{
+				TABLE = xstrtok(NULL, "");
+			}
+			else if (strncmp(token, "database", 8) == 0)
+			{
+				DATABASE = xstrtok(NULL, "");
+			}
+			else
+			{
+				printf("No such configurable variable: %s\n", token);
+			}
 		}
 		else
 		{
