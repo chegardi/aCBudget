@@ -1,0 +1,8 @@
+Changelog
+
+MONDAY MARCH 31st 2015
+*	Removed and updated some comments in 'acbudget.c'
+*	Replaced method 'tmpnam()' to 'mkstemp()' in acbudget.c after warning from compiler. Warning is fetched from tempnam:notes:
+	"""Although tempnam() generates names that are difficult to guess, it is nevertheless possible that between the time that tempnam() returns a pathname, and the time that the program opens it, another program might create that pathname using open(2), or create it as a symbolic link. This can lead to security holes.  To avoid such possibilities, use the open(2) O_EXCL flag to open the pathname.  Or better yet, use mkstemp(3) or tmpfile(3)."""
+*	Replaced "char* filename" by a constant in header "char* CONFIG_FILENAME", which is set to default 'config.ini' in function 'configuration()'.
+*	Renamed "char* select(char *command, sqlite3 *database)" to "char* myselect(char *command, sqlite3 *database)" because of name-conflict in "select.h"

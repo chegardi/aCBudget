@@ -14,14 +14,14 @@
 #define AMOUNT_LEN 16
 #define ID_LEN 6
 #define INPUT_LEN 350
-char *DATABASE, *TABLE , *YEAR;
+char *DATABASE, *TABLE , *YEAR, *CONFIG_FILENAME;
 
 static int callback(void *NotUsed, int argc, char **argv, char **azColName);
 static int indexcallback(void *NotUsed, int argc, char **argv, char **azColName);
 int get_command(char *command, char *command_text);
 void generate_id(char *id);
 int insert(char *command, sqlite3 *database);
-char *select(char* command, sqlite3 *database);
+char *myselect(char *command, sqlite3 *database);
 void copydate(char* date, char* token);
 void copynumber(int offset, char* to, char* from);
 int readfile(char *command, sqlite3 *database);

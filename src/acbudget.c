@@ -104,9 +104,9 @@ int insert(char *command, sqlite3 *database)
 
 /*
  *	Select command
- *	Executes commands from user as long as q/quit is not typed
+ *	Executes commands from user as long as e/end is not typed
  */
-char *select(char * command, sqlite3 *database)
+char *myselect(char *command, sqlite3 *database)
 {
 	int len, counter = 0;
 	char select[250], *zErrMsg;
@@ -177,7 +177,7 @@ void copynumber(int error, char* to, char* from)
 	}
 	to[i+error] = '\0';
 	#ifdef DEBUG
-	printf("token.amount=%s vs %s=sql.amount\n", from,to);
+	fprintf(stderr, "token.amount=%s vs %s=sql.amount\n", from,to);
 	#endif
 }
 
@@ -188,7 +188,7 @@ void copynumber(int error, char* to, char* from)
 void copydate(char *date, char *token)
 {
 	#ifdef DEBUG
-	printf("token.date=%s\n", token);
+        fprintf(stderr, "token.date=%s\n", token);
 	#endif
 	int i;
 	for (i = 0; i< 4; i++)
@@ -201,7 +201,7 @@ void copydate(char *date, char *token)
 	date[i++] = (int) token[1];
 	date[i++] = '\0';
 	#ifdef DEBUG
-	printf("regnskap.date=%s\n", date);
+	fprintf(stderr, "regnskap.date=%s\n", date);
 	#endif
 }
 
@@ -402,8 +402,6 @@ int readSBS(FILE *fp, sqlite3 *database)
 			strncpy(datemonth, datetoken, 3);
 			/*
 			 *	Replacing old date with correct format, importing YEAR from header
-			 *	Considering adding year and other default information on a .config
-			 *	file at a later time
 			 */
 			snprintf(date, 11, "%s-%s-%s", YEAR, datemonth, dateday);
 		} else {
@@ -427,7 +425,7 @@ int readSBS(FILE *fp, sqlite3 *database)
 		#ifdef DEBUG
 		fprintf(stderr, "amount: %s\n", token);
 		#endif
-		//	All information gathered, check for equal date and/or amount in database
+		//	All information gathered, check for equal date in database
 		snprintf(insert_into, INSERT_LEN, "select * from %s where date like '%s';", TABLE, date);
 		if ( sqlite3_exec(database, insert_into, callback, 0, &zErrMsg) != SQLITE_OK) {
 			fprintf(stderr, "SQL error: %s\n", zErrMsg);
@@ -491,7 +489,7 @@ char *xstrtok(char *line, char *delims)
 	*see if we have reached the end of the line 
 	*/
 	if(saveline == NULL || *saveline == '\0') 
-	   return(NULL);
+            return(NULL);
 	/*
 	*return the number of characters that aren't delims 
 	*/
@@ -516,6 +514,7 @@ void printhelp(char *command)
 	command += snprintf(command, COMMAND_LEN, "%-6s - %s\n", "select", "write commands directly to database");
 	command += snprintf(command, COMMAND_LEN, "%-6s - %s\n", "print", "prints out balance for all accounts");
 	command += snprintf(command, COMMAND_LEN, "%-6s - %s\n", "insert", "for easy insertions to database");
+        command += snprintf(command, COMMAND_LEN, "%-6s - %s\n", "config", "a menu to configurate database variables");
 	command += snprintf(command, COMMAND_LEN, "%-6s - %s\n", "help", "this menu");
 }
 
@@ -567,20 +566,21 @@ char *config(char *command, sqlite3 *database)
 			"yr", "year", "Displays year used in insert command",
 			"variable=value", "sets variable to new value");
 		}
-		else if (strlen(xstrtok(command, "=")) > 3)
+		else if (strlen(command) != strlen(xstrtok(command, "=")))
 		{
 			token = xstrtok(command, "=");
-			if (strncmp(token, "year", 4) == 0)
+			if (strncmp(token, "year\0", 5) == 0)
 			{
-				YEAR = xstrtok(NULL, "");
+				YEAR = xstrtok(NULL, "=");
+                                printf("YEAR is now %s\n", YEAR);
 			}
-			else if (strncmp(token, "table", 5) == 0)
+			else if (strncmp(token, "table\0", 6) == 0)
 			{
-				TABLE = xstrtok(NULL, "");
+				TABLE = xstrtok(NULL, "=");
 			}
-			else if (strncmp(token, "database", 8) == 0)
+			else if (strncmp(token, "database\0", 9) == 0)
 			{
-				DATABASE = xstrtok(NULL, "");
+				DATABASE = xstrtok(NULL, "=");
 			}
 			else
 			{
@@ -591,6 +591,7 @@ char *config(char *command, sqlite3 *database)
 		{
 			printf("No such command: %s\n", command);
 		}
+                printf("strlen(command, '=') = %d\n", strlen(xstrtok(command, "=")));
 		len = get_command(command, "config"); command[len-1] = '\0';
 	}
 	return command;
@@ -602,8 +603,8 @@ char *config(char *command, sqlite3 *database)
 void save_config(char *command)
 {
 	FILE *config_file;
-	config_file = fopen("config.ini", "r");
-	if (config_file == NULL)
+	config_file = fopen(CONFIG_FILENAME, "r");
+	if (config_file == NULL)  // File does not exist, creating new file
 	{
 		config_file = fopen("config.ini", "w");
 		fprintf(config_file, "#configuration file for aCBudget\n");
@@ -611,39 +612,38 @@ void save_config(char *command)
 		fprintf(config_file, "year=%s\n", YEAR);
 		fprintf(config_file, "table=%s\n", TABLE);
 		fclose(config_file);
-		snprintf(command, COMMAND_LEN, "Settings saved to new file 'config.ini'\n");
+		snprintf(command, COMMAND_LEN, "Settings saved to new file '%s'\n", CONFIG_FILENAME);
 		return;
 	}
-	else
+	else  // file exists, merging
 	{
-		char *token, tmpname[L_tmpnam];
-		FILE *new_file;
-		new_file = fopen(tmpnam(tmpname), "w");
+		char *token, tmpname[] = "XXXXXX";
+		FILE *new_file = fdopen(mkstemp(tmpname), "w");
 		int counter = 1, file_size = 0;
 		do {
 			if (fgets(command, COMMAND_LEN, config_file) != NULL)
 			{
 				counter++;
-				if (command[0] != '#')
+				if (command[0] != '#')  // config-variabel
 				{
-					token = strtok(command, "=");
-					if (strncmp(token, "year", 4) == 0) {
+                                  token = strtok(command, "="); // '=' is config variabel delim
+                                  if (strncmp(token, "year", 4) == 0) {  // year is stored
 						token = strtok(NULL, "");
 						fprintf(new_file, "year=%s\n", YEAR);
-					} else if (strncmp(token, "table", 5) == 0) {
+                                  } else if (strncmp(token, "table", 5) == 0) { // database table is stored
 						token = strtok(NULL, "");
 						fprintf(new_file, "table=%s\n", TABLE);
-					} else if (strncmp(token, "database", 8) == 0) {
+                                  } else if (strncmp(token, "database", 8) == 0) {  // database name is stored
 						token = strtok(NULL, "");
 						fprintf(new_file, "database=%s\n", DATABASE);
 					}
 				}
-				else
+				else  // not a config variabel, user has manually added lines
 				{
 					fprintf(new_file, "%s", command);
 				}
 			}
-			else if (command == NULL)
+			else if (command == NULL)  // not supposed to happen
 			{
 				fprintf(stderr, "ERROR ON LINE #%d IN 'config.ini'\n", counter);
 				exit(EXIT_FAILURE);
@@ -651,11 +651,11 @@ void save_config(char *command)
 		} while (!feof(config_file) && counter < 10);
 		fclose(config_file);
 		fclose(new_file);
-		if (remove("config.ini"))
+		if (remove("config.ini"))  // failed to remove old config file
 		{
 			printf("Failed to remove old 'config.ini';\n%s\n", strerror(errno));
 		}
-		if (rename(tmpname, "config.ini"))
+		if (rename(tmpname, CONFIG_FILENAME))  // failed to rename new config file
 		{
 			printf("Failed to rename new 'config.ini';\n%s\n", strerror(errno));
 		}
@@ -672,7 +672,7 @@ char *execute_command(char *command, sqlite3 *database)
 	if (strncmp(command, "insert\0", 7) == 0) {
 		snprintf(command, COMMAND_LEN, "%d insertions made.\n", insert(command, database));
 	} else if (strncmp(command, "select\0", 6) == 0) {
-		return select(command, database);
+		return myselect(command, database);
 	} else if (strncmp(command, "read\0", 5) == 0) {
 		snprintf(command, COMMAND_LEN, "%d insertions made.\n", readfile(command, database));
 	} else if (strncmp(command, "config\0", 7) == 0) {
@@ -686,18 +686,20 @@ char *execute_command(char *command, sqlite3 *database)
 }
 
 /*
- *	Fetches/creates default configuration in 'config.cfg' file
+ *	Fetches/creates default configuration in 'config.ini' file
  */
 void configurate(char *command, sqlite3 *db) {
 	#ifdef DEBUG
-	fprintf(stderr, "Configurating..\n");
+	fprinft(stderr, "Configurating..\n");
 	#endif
+        CONFIG_FILENAME = malloc(sizeof(char) * strlen("config.ini"));
+        strcpy(CONFIG_FILENAME, "config.ini");
 	FILE *config_file;
-	config_file = fopen("config.ini", "r");
-	if (config_file == NULL)
+	config_file = fopen(CONFIG_FILENAME, "r");
+	if (config_file == NULL)  // file does not exist
 	{
 		#ifdef DEBUG
-		fprintf(stderr, "Creating 'config.ini'\n");
+          fprintf(stderr, "Creating '%s'\n", CONFIG_FILENAME);
 		#endif
 		DATABASE = malloc(sizeof(char)*strlen("regnskap.db"));
 		strcpy(DATABASE, "regnskap.db");
@@ -712,18 +714,18 @@ void configurate(char *command, sqlite3 *db) {
 		fprintf(config_file, "table=%s\n", TABLE);
 		fclose(config_file);
 		#ifdef DEBUG
-		fprintf(stderr, "'config.ini' created\n");
+		fprintf(stderr, "'%s' created\n", CONFIG_FILENAME);
 		#endif
-		snprintf(command, COMMAND_LEN, "'config.ini' created and default settings loaded\n");
+		snprintf(command, COMMAND_LEN, "'%s' created and default settings loaded\n", CONFIG_FILENAME);
 	}
-	else
+	else  // file exists
 	{
 		int counter = 1;
 		char *token;
 		do {
 			if (fscanf(config_file, "%s\n", command) > COMMAND_LEN)
 			{
-				fprintf(stderr, "ERROR ON LINE #%d IN 'config.ini'\nVALUE TOO LONG\n", counter);
+                          fprintf(stderr, "ERROR ON LINE #%d IN '%s'\nVALUE TOO LONG\n", counter, CONFIG_FILENAME);
 				exit(EXIT_FAILURE);
 			}
 			counter++;
@@ -759,9 +761,10 @@ void configurate(char *command, sqlite3 *db) {
 		} while (!feof(config_file));
 		fclose(config_file);
 		#ifdef DEBUG
-		fprintf(stderr, "'config.ini' imported\n");
+
+		fprintf(stderr, "'%s' imported\n", CONFIG_FILENAME);
 		#endif
-		snprintf(command, COMMAND_LEN, "Settings loaded from 'config.ini'\n");
+		snprintf(command, COMMAND_LEN, "Settings loaded from '%s'\n", CONFIG_FILENAME);
 	}	
 }
 
