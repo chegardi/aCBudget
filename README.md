@@ -9,12 +9,12 @@ Current features:
 - insertion to database
 - read from DNB and Sparebanken Sør files
 - manual select statements on database
-- configuration file for easy default setup -
+- configuration file for easy default setup
 
 Wishes from the future:
-(1) More solid and secure code and database manipulation.
-(2) GUI
-(3) Network capability
-(4) Smartphone capability
+1. More solid and secure code and database manipulation.
+2. GUI
+3. Network capability
+4. Smartphone capability
 
 *See http://www.sqlite.org/ for download/interface and information on SQLite.
