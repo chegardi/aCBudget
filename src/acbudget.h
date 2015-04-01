@@ -3,6 +3,7 @@
 #include<stdlib.h>
 #include<string.h>
 #include<errno.h>
+#include<io.h>
 
 #define COMMAND_LEN 256
 #define PRINT_LEN 1024

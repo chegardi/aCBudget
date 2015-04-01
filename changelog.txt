@@ -1,5 +1,9 @@
 Changelog
 
+WEDNESDAY APRIL 1st 2015
+*	Fixed a bug in function "configurate(..)" which would lead to config variable update resulted in NULL value.
+*	Reverted method 'tempnam()' back from 'mkstemp()' for ability to execute in Windows environment. Advice you who are using this program to store it in a non-admin folder on a non-system disk.
+
 MONDAY MARCH 31st 2015
 *	Removed and updated some comments in 'acbudget.c'
 *	Replaced method 'tmpnam()' to 'mkstemp()' in acbudget.c after warning from compiler. Warning is fetched from tempnam:notes:

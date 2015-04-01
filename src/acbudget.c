@@ -499,8 +499,7 @@ char *xstrtok(char *line, char *delims)
 	saveline += n; /*bump past the delim*/
 
 	if(*saveline != '\0') /*trash the delim if necessary*/
-	   *saveline++ = '\0';
-
+		*saveline++ = '\0';
 	return(p);
 }
 
@@ -566,32 +565,26 @@ char *config(char *command, sqlite3 *database)
 			"yr", "year", "Displays year used in insert command",
 			"variable=value", "sets variable to new value");
 		}
-		else if (strlen(command) != strlen(xstrtok(command, "=")))
-		{
-			token = xstrtok(command, "=");
-			if (strncmp(token, "year\0", 5) == 0)
-			{
-				YEAR = xstrtok(NULL, "=");
-                                printf("YEAR is now %s\n", YEAR);
-			}
-			else if (strncmp(token, "table\0", 6) == 0)
-			{
-				TABLE = xstrtok(NULL, "=");
-			}
-			else if (strncmp(token, "database\0", 9) == 0)
-			{
-				DATABASE = xstrtok(NULL, "=");
-			}
-			else
-			{
-				printf("No such configurable variable: %s\n", token);
-			}
-		}
 		else
 		{
-			printf("No such command: %s\n", command);
+			len = strlen(command);
+			token = xstrtok(command, "=");
+			if (len != strlen(token))
+			{
+				if (strncmp(token, "year\0", 5) == 0)
+					YEAR = xstrtok(NULL, "");
+				else if (strncmp(token, "month\0", 6) == 0)
+					MONTH = xstrtok(NULL, "");
+				else if (strncmp(token, "table\0", 6) == 0)
+					TABLE = xstrtok(NULL, "");
+				else if (strncmp(token, "database\0", 9) == 0)
+					DATABASE = xstrtok(NULL, "");
+				else
+					printf("No such configurable variable: %s\n", token);
+			}
+			else
+				printf("No such command: %s\n", command);
 		}
-                printf("strlen(command, '=') = %d\n", strlen(xstrtok(command, "=")));
 		len = get_command(command, "config"); command[len-1] = '\0';
 	}
 	return command;
@@ -609,6 +602,7 @@ void save_config(char *command)
 		config_file = fopen("config.ini", "w");
 		fprintf(config_file, "#configuration file for aCBudget\n");
 		fprintf(config_file, "database=%s\n", DATABASE);
+		fprintf(config_file, "month=%s\n", MONTH);
 		fprintf(config_file, "year=%s\n", YEAR);
 		fprintf(config_file, "table=%s\n", TABLE);
 		fclose(config_file);
@@ -617,8 +611,11 @@ void save_config(char *command)
 	}
 	else  // file exists, merging
 	{
-		char *token, tmpname[] = "XXXXXX";
-		FILE *new_file = fdopen(mkstemp(tmpname), "w");
+		char *token, *tmpname;
+		tmpnam(tmpname);
+		//_mktemp_s(tmpname, strlen(CONFIG_FILENAME));
+		FILE *new_file = fopen(tmpname, "w");
+		
 		int counter = 1, file_size = 0;
 		do {
 			if (fgets(command, COMMAND_LEN, config_file) != NULL)
@@ -692,8 +689,8 @@ void configurate(char *command, sqlite3 *db) {
 	#ifdef DEBUG
 	fprinft(stderr, "Configurating..\n");
 	#endif
-        CONFIG_FILENAME = malloc(sizeof(char) * strlen("config.ini"));
-        strcpy(CONFIG_FILENAME, "config.ini");
+    CONFIG_FILENAME = malloc(sizeof(char) * strlen("config.ini"));
+	strcpy(CONFIG_FILENAME, "config.ini");
 	FILE *config_file;
 	config_file = fopen(CONFIG_FILENAME, "r");
 	if (config_file == NULL)  // file does not exist
@@ -703,6 +700,8 @@ void configurate(char *command, sqlite3 *db) {
 		#endif
 		DATABASE = malloc(sizeof(char)*strlen("regnskap.db"));
 		strcpy(DATABASE, "regnskap.db");
+		MONTH = malloc(sizeof(char)*strlen("01"));
+		strcpy(MONTH, "01");
 		YEAR = malloc(sizeof(char)*strlen("2014"));
 		strcpy(YEAR, "2014");
 		TABLE = malloc(sizeof(char)*strlen("r2014"));
@@ -725,11 +724,11 @@ void configurate(char *command, sqlite3 *db) {
 		do {
 			if (fscanf(config_file, "%s\n", command) > COMMAND_LEN)
 			{
-                          fprintf(stderr, "ERROR ON LINE #%d IN '%s'\nVALUE TOO LONG\n", counter, CONFIG_FILENAME);
+				fprintf(stderr, "ERROR ON LINE #%d IN '%s'\nVALUE TOO LONG\n", counter, CONFIG_FILENAME);
 				exit(EXIT_FAILURE);
 			}
 			counter++;
-			if (command[0] != '#')
+			if (command[0] != '#')	//	not a comment
 			{
 				token = strtok(command, "=");
 				if (strncmp(token, "year", 4) == 0) {
