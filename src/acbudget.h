@@ -15,7 +15,7 @@
 #define AMOUNT_LEN 16
 #define ID_LEN 6
 #define INPUT_LEN 350
-char *DATABASE, *TABLE , *YEAR, *CONFIG_FILENAME;
+char *DATABASE, *TABLE , *MONTH, *YEAR, *CONFIG_FILENAME;
 
 static int callback(void *NotUsed, int argc, char **argv, char **azColName);
 static int indexcallback(void *NotUsed, int argc, char **argv, char **azColName);
