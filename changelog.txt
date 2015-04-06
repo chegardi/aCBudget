@@ -1,5 +1,11 @@
 Changelog
 
+MONDAY APRIL 6th 2015
+*	Divided source files in '/src' into different files with headers for each, for better readibility and maintainabilty.
+*	Implemented an update command for easier update of existing rows, with additional possibility of adding a new entry with new comment, type and amount on same date as updated (a sort of "split" function).
+*	Added functions "numbered_callback", "decreasing_callback", "update" and "get_update_command" and some variables in header to use in the update command described in previous point.
+*	Removed "print" as a command on help display, as there is no such command.
+
 WEDNESDAY APRIL 1st 2015
 *	Fixed a bug in function "configurate(..)" which would lead to config variable update resulted in NULL value.
 *	Reverted method 'tempnam()' back from 'mkstemp()' for ability to execute in Windows environment. Advice you who are using this program to store it in a non-admin folder on a non-system disk.

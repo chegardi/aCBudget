@@ -1,10 +1,16 @@
-#include "../sql/sqlite3.h"
+//	standard libraries
 #include<stdio.h>
 #include<stdlib.h>
 #include<string.h>
 #include<errno.h>
 #include<io.h>
 
+//	aCBudget libraries
+#include "acbudget_sql.h"
+#include "acbudget_utilities.h"
+#include "acbudget_execution.h"
+
+//	pre-defined constants
 #define COMMAND_LEN 256
 #define PRINT_LEN 1024
 #define INSERT_LEN 256
@@ -15,24 +21,14 @@
 #define AMOUNT_LEN 16
 #define ID_LEN 6
 #define INPUT_LEN 350
+//	database variables
 char *DATABASE, *TABLE , *MONTH, *YEAR, *CONFIG_FILENAME;
+//	utility variables
+char *UNIQUE_ID;
+int *P_COUNTER;
 
-static int callback(void *NotUsed, int argc, char **argv, char **azColName);
-static int indexcallback(void *NotUsed, int argc, char **argv, char **azColName);
-int get_command(char *command, char *command_text);
-void generate_id(char *id);
-int insert(char *command, sqlite3 *database);
-char *myselect(char *command, sqlite3 *database);
-void copydate(char* date, char* token);
-void copynumber(int offset, char* to, char* from);
-int readfile(char *command, sqlite3 *database);
-int readDNB(FILE *fp, sqlite3 *database);
-int readSBS(FILE *fp, sqlite3 *database);
-char *xstrtok(char *line, char *delims);
-void printhelp(char *command);
-char *print(char *command, sqlite3 *database);
+//	main functions
+void configurate(char *command, sqlite3 *db);
 char *config(char *command, sqlite3 *database);
 void save_config(char *command);
-char *execute_command(char *command, sqlite3 *database);
-void configurate(char *command, sqlite3 *db);
 int main(int argc, char **argv);
