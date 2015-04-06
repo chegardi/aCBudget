@@ -61,9 +61,14 @@ int decreasing_callback(void *NotUsed, int argc, char **argv, char **azColName)
 	if ((*P_COUNTER) == 1)	//	one value above because '''(*P_COUNTER)--;''' has not been called by this method yet
 	{
 		int i;
-		for (i=0; i<argc; i++)
-			if (strncmp(azColName[i], "id", 2) == 0)
+		for (i=0; i<argc; i++) {
+			if (strncmp(azColName[i], "id", 2) == 0) {
 				strncpy(UNIQUE_ID, argv[i], ID_LEN);
+				#ifdef DEBUG
+				fprintf(stderr, "Copyied '%s' into UNIQUE_ID, = '%s'\n", argv[i], UNIQUE_ID);
+				#endif
+			}
+		}
 	}
 	 (*P_COUNTER)--;
 	return 0;
@@ -141,19 +146,26 @@ int insert(char *command, sqlite3 *database)
 char *myselect(char *command, sqlite3 *database)
 {
 	int len, counter = 0;
-	char *select = malloc(sizeof(char) * SELECT_LEN), *zErrMsg;
+	char *select = malloc(sizeof(char) * SELECT_LEN), *zErrMsg, execute;
 	if (select == NULL) {
 		snprintf(command, COMMAND_LEN, "Error allocating memory for operation");
 	}
 	else
 		{
+		printf("===WARNING===\nAny statements written WILL be executed! Be careful NOT to execute unintended statements on database.\n===WARNING===\n");
 		len = get_command(select, "select"); select[len-1] = '\0';
 		while ((strncmp(select, "e\0", 2) != 0) && (strncmp(select, "end\0", 4) != 0)) {
-			if ( sqlite3_exec(database, select, callback, 0, &zErrMsg) != SQLITE_OK) {
-				fprintf(stderr, "SQL error: %s\n", zErrMsg);
-				sqlite3_free(zErrMsg);
-			} else {
-				counter++;
+			if (strncmp(select, "select ", 7) != 0) {
+				printf("Really execute '%s', ?: ", select);
+				execute = getc(stdin); fflush(stdin);
+			}	else execute = 'y';
+			if (execute == 'y') {
+				if ( sqlite3_exec(database, select, callback, 0, &zErrMsg) != SQLITE_OK) {
+					fprintf(stderr, "SQL error: %s\n", zErrMsg);
+					sqlite3_free(zErrMsg);
+				} else {
+					counter++;
+				}
 			}
 			len = get_command(select, "select"); select[len-1] = '\0';
 		}

@@ -5,6 +5,7 @@ MONDAY APRIL 6th 2015
 *	Implemented an update command for easier update of existing rows, with additional possibility of adding a new entry with new comment, type and amount on same date as updated (a sort of "split" function).
 *	Added functions "numbered_callback", "decreasing_callback", "update" and "get_update_command" and some variables in header to use in the update command described in previous point.
 *	Removed "print" as a command on help display, as there is no such command.
+*	Added a warning in '''select''' command that ALL statements will be executed, as well as a confirmation of input for any sql statements other than "select". This will hopefully improve security against accidentally executing unintended statements on database.
 
 WEDNESDAY APRIL 1st 2015
 *	Fixed a bug in function "configurate(..)" which would lead to config variable update resulted in NULL value.

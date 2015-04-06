@@ -313,12 +313,12 @@ int update(char *command, sqlite3 *database)
 	P_COUNTER = malloc(sizeof(int));
 	while ((strncmp(command, "e\0", 2) != 0) && (strncmp(command, "end\0", 4) != 0))
 	{
+		(*P_COUNTER) = 1;
 		//	find entries based on day of month
-		snprintf(select, SELECT_LEN, "select * from %s where date = '%s-%s-%s'", TABLE, YEAR, MONTH, command);
+		snprintf(select, SELECT_LEN, "select comment, amount, type from %s where date = '%s-%s-%s'", TABLE, YEAR, MONTH, command);
 		#ifdef DEBUG
 		fprintf(stdout, "Running select on %s: '%s'\n", DATABASE, select);
 		#endif
-		(*P_COUNTER) = 1;
 		if ( sqlite3_exec(database, select, numbered_callback, 0, &zErrMsg) != SQLITE_OK) {
 			fprintf(stderr, "SQL error: %s\n", zErrMsg);
 			sqlite3_free(zErrMsg);
@@ -327,8 +327,11 @@ int update(char *command, sqlite3 *database)
 		if (*P_COUNTER > 1) {
 			//	give user ability to divide/update entries
 			char *day = malloc(sizeof(char) * 3); 
-			strncpy(day, command, 2);
+			snprintf(day, 3, "%s", command);
 			len = get_update_command(command, "number to update"); command[len-1] = '\0';
+			#ifdef DEBUG
+			fprintf(stderr, "day: '%s', command: '%s'\n", day, command);
+			#endif
 			len = atoi(command);
 			if ((strncmp(command, "n\0", 2)!=0) && ((( len < 1) ) || (len >= (*P_COUNTER))))
 				printf("Invalid input: '%s', either pick number in range %d-%d or 'n' for none\n", command, 1, ((*P_COUNTER)-1));
@@ -340,6 +343,7 @@ int update(char *command, sqlite3 *database)
 				#endif
 				//	allocating space for id from rownumber
 				UNIQUE_ID = malloc(sizeof(char) * ID_LEN);
+				snprintf(select, SELECT_LEN, "select id from %s where date = '%s-%s-%s'", TABLE, YEAR, MONTH, day);
 				if (sqlite3_exec(database, select, decreasing_callback, 0, &zErrMsg) != SQLITE_OK) {
 					fprintf(stderr, "SQL error: %s\n", zErrMsg);
 					sqlite3_free(zErrMsg);
@@ -363,7 +367,6 @@ int update(char *command, sqlite3 *database)
 				correct = fgetc(stdin);	fflush(stdin);
 				if (correct == 'y') {	//	add another row with new comment, type and amount on same date
 					char *comment = malloc(sizeof(char) * COMMENT_LEN);
-					strncpy(day, command, 3);
 					len = get_update_command(comment, "comment"); comment[len-1] = '\0';	//	comment
 					len = get_update_command(command, "type"); command[len-1] = '\0';			//	type
 					get_update_command(amount, "amount"); amount[ID_LEN-1] = '\0';				//	amount
