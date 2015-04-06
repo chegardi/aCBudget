@@ -55,13 +55,17 @@ int numbered_callback(void *NotUsed, int argc, char **argv, char **azColName)
  */
 int decreasing_callback(void *NotUsed, int argc, char **argv, char **azColName)
 {
-	if (*P_COUNTER == 2)	//	one value above because '''(*P_COUNTER)--;''' has not been called by this method yet
+	#ifdef DEBUG
+	fprintf(stderr, "Checking P_POINTER: %d == 1\n", (*P_COUNTER));
+	#endif
+	if ((*P_COUNTER) == 1)	//	one value above because '''(*P_COUNTER)--;''' has not been called by this method yet
 	{
 		int i;
 		for (i=0; i<argc; i++)
 			if (strncmp(azColName[i], "id", 2) == 0)
 				strncpy(UNIQUE_ID, argv[i], ID_LEN);
-	}	else (*P_COUNTER)--;
+	}
+	 (*P_COUNTER)--;
 	return 0;
 }
 

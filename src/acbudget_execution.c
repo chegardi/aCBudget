@@ -304,7 +304,7 @@ int readSBS(FILE *fp, sqlite3 *database)
  */
 int update(char *command, sqlite3 *database)
 {
-	int updated = 0, len, counter;
+	int updated = 0,  len;
 	char *commandhelp = malloc(sizeof(char) * COMMAND_LEN), *select = malloc(sizeof(char) * SELECT_LEN) , *zErrMsg, correct;
 	(*commandhelp) = '\0'; (*select) = '\0';	//	default start
 	if (commandhelp == NULL || select == NULL)	return -1;
@@ -326,15 +326,17 @@ int update(char *command, sqlite3 *database)
 		}
 		if (*P_COUNTER > 1) {
 			//	give user ability to divide/update entries
-			printf("Select a number to update: ");
-			correct = fgetc(stdin);
-			fflush(stdin);
-			if (correct != 'n' && ((correct < '1') || (correct >= ('1' + (*P_COUNTER)-1))))
-				printf("Invalid input: '%c', either pick number in range %d-%d or 'n' for none\n", correct, 1, ((*P_COUNTER)-1));
-			else if (correct != 'n') {
+			char *day = malloc(sizeof(char) * 3); 
+			strncpy(day, command, 2);
+			len = get_update_command(command, "number to update"); command[len-1] = '\0';
+			len = atoi(command);
+			if ((strncmp(command, "n\0", 2)!=0) && ((( len < 1) ) || (len >= (*P_COUNTER))))
+				printf("Invalid input: '%s', either pick number in range %d-%d or 'n' for none\n", command, 1, ((*P_COUNTER)-1));
+			else if (strncmp(command, "n\0", 2) != 0) {
+				(*P_COUNTER) = atoi(command);
 				//	row selected for update
 				#ifdef DEBUG
-				fprintf(stderr, "Finding rownumber %c\n", correct);
+				fprintf(stderr, "Finding rownumber %d (P_POINTER: %d\n", len, (*P_COUNTER));
 				#endif
 				//	allocating space for id from rownumber
 				UNIQUE_ID = malloc(sizeof(char) * ID_LEN);
@@ -352,6 +354,7 @@ int update(char *command, sqlite3 *database)
 					sqlite3_free(zErrMsg);
 					return -1;
 				}
+				updated++;	//	row updated
 				#ifdef DEBUG
 				fprintf(stderr, "Row with id='%s' updated\n", UNIQUE_ID);
 				#endif
@@ -359,7 +362,7 @@ int update(char *command, sqlite3 *database)
 				printf("Want to add another row with new type and same comment on same date?: ");
 				correct = fgetc(stdin);	fflush(stdin);
 				if (correct == 'y') {	//	add another row with new comment, type and amount on same date
-					char *day = malloc(sizeof(char) * 3), *comment = malloc(sizeof(char) * COMMENT_LEN);
+					char *comment = malloc(sizeof(char) * COMMENT_LEN);
 					strncpy(day, command, 3);
 					len = get_update_command(comment, "comment"); comment[len-1] = '\0';	//	comment
 					len = get_update_command(command, "type"); command[len-1] = '\0';			//	type
@@ -374,11 +377,13 @@ int update(char *command, sqlite3 *database)
 						return -1;
 					}
 					//	free insert specific malloc
-					free(day); free(comment); 
+					free(comment); 
 				}
 				//	free update specific malloc
 				free(amount); free(UNIQUE_ID);
 			}
+			//	free day-storage
+			free(day); 
 		}	else printf("No entries in given day (%s) of month (%s)\n", command, MONTH);
 		snprintf(commandhelp, COMMAND_LEN, "day in month (%s)", MONTH);
 		len = get_update_command(command, commandhelp); command[len-1] = '\0';
