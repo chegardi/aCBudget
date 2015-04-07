@@ -81,7 +81,7 @@ int decreasing_callback(void *NotUsed, int argc, char **argv, char **azColName)
 int insert(char *command, sqlite3 *database)
 {
 	int len, i, counter = 0;	
-	char *zErrMsg = 0, *insert = malloc(sizeof(char)*INSERT_LEN), *insert_into = insert, *token, id[ID_LEN];
+	char *zErrMsg = 0, *insert = malloc(sizeof(char)*INSERT_LEN), *token, id[ID_LEN];
 	if (insert == NULL)	return -1;
 	char usage[] = "usage (e or end to quit)\n"\
 			 "***\naCBudget.insert > YYYY-MM-DD,comment,type,amount\n"\
@@ -95,15 +95,16 @@ int insert(char *command, sqlite3 *database)
 			*command = '\0';
 		} else {
 			token = strtok(command, ",");
-			snprintf(insert, INSERT_LEN, "\0");
-			insert += snprintf(insert, INSERT_LEN, "insert into %s values(", TABLE);
+			//snprintf(insert, INSERT_LEN, "\0");
+			(*insert) = '\0'; len = 0;
+			len += snprintf(insert + len, INSERT_LEN, "insert into %s values(", TABLE);
 			//	read and store date, comment and type
 			for (i =0; i<3; i++) {
 				if (token != NULL) {
 					#ifdef DEBUG
 					fprintf(stderr, "%s\n", token);
 					#endif
-					insert += snprintf(insert, INSERT_LEN, "'%s', ", token);
+					len += snprintf(insert + len, INSERT_LEN, "'%s', ", token);
 					token = strtok(NULL, ",");
 				} else {
 					break;
@@ -116,20 +117,22 @@ int insert(char *command, sqlite3 *database)
 				#ifdef DEBUG
 				fprintf(stderr, "%s\n", token);
 				#endif
-				insert += snprintf(insert, INSERT_LEN, "%s, ", token);
+				len += snprintf(insert + len, INSERT_LEN, "%s, ", token);
 				//	Generate and store unique ID
 				generate_id(id);
-				insert += snprintf(insert, INSERT_LEN, "'%s');", id);
+				len += snprintf(insert + len, INSERT_LEN, "'%s');", id);
+				#ifdef DEBUG
+				fprintf(stderr, "%s\n", id);
+				#endif
 				//	execute SQL command
-				if ( sqlite3_exec(database, insert_into, callback, 0, &zErrMsg) != SQLITE_OK ) {
+				if ( sqlite3_exec(database, insert, NULL, 0, &zErrMsg) != SQLITE_OK ) {
 					fprintf(stderr, "SQL error: %s\n", zErrMsg);
 					sqlite3_free(zErrMsg);
 					return;
-				} else {
-					#ifdef DEBUG
-					fprintf(stderr, "%s\n", insert_into);
-					#endif
 				}
+				#ifdef DEBUG
+				fprintf(stderr, "%s\n", insert);
+				#endif
 				counter++;
 			}
 		}

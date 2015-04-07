@@ -30,8 +30,9 @@ void configurate(char *command, sqlite3 *db)
 		config_file = fopen("config.ini", "w");
 		fprintf(config_file, "#configuration file for aCBudget\n");
 		fprintf(config_file, "database=%s\n", DATABASE);
-		fprintf(config_file, "year=%s\n", YEAR);
 		fprintf(config_file, "table=%s\n", TABLE);
+		fprintf(config_file, "year=%s\n", YEAR);
+		fprintf(config_file, "month=%s\n", MONTH);
 		fclose(config_file);
 		#ifdef DEBUG
 		fprintf(stderr, "'%s' created\n", CONFIG_FILENAME);
