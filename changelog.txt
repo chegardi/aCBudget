@@ -1,5 +1,8 @@
 Changelog
 
+MONDAY MAY 18th 2015
+*	Added backup functionality. Program automatically creates a backup file of current database, and adds two new commands within 'config' to backup to- or revert from backup database.
+
 THURSDAY APRIL 7th 2015
 *	Fixed a bug in 'insert' command when trying to execute statements after first statement often lead program to crash.
 *	Added a detailed_readme.txt which explains the program in more detail including how the database should be set up.

@@ -11,6 +11,8 @@ More detailed information about the program, Sections*
 			month
 			table
 			database
+			backup
+			revert
 			help
 *		read
 *		help
@@ -66,6 +68,10 @@ $	aCBudget.config > table (tb)
 Shows the saved table.
 $	aCBudget.config > database (db)
 Shows the saved database.
+$	aCBudget.config > backup (bu)
+Saves current database to backup-database.
+$	aCBudget.config > revert (rv)
+Reverts backup database to current database - canceling all executions since last backup.
 $	aCBudget.config > help (h)
 Shows a list of commands, their abbreviations and some explanations.
 
