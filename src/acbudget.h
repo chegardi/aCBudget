@@ -21,7 +21,7 @@
 #define ID_LEN 6
 #define INPUT_LEN 350
 //	database variables
-char *DATABASE, *TABLE , *MONTH, *YEAR, *CONFIG_FILENAME;
+char *DATABASE, *TABLE , *MONTH, *YEAR, *CONFIG_FILENAME, *BACKUP_FILENAME;
 //	utility variables
 char *UNIQUE_ID;
 int *P_COUNTER;

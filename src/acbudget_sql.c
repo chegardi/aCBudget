@@ -143,6 +143,75 @@ int insert(char *command, sqlite3 *database)
 }
 
 /*
+** Method is copied from sqlite.org, altered to fit my code.
+** REWRITTEN ORIGINAL DESCRIPTION
+** This function is used to load the contents of a database file on disk 
+** into the "main" database of open database connection database, or
+** to save the current contents of the database opened by database into
+** a database file on disk. database is probably an in-memory database, 
+** but this function will also work fine if it is not.
+*/
+int revertOrBackup(sqlite3 *database, int isSave)
+{
+	int rc;                   /* Function return code */
+	sqlite3 *file;           /* Database connection opened on DATABASE */
+	sqlite3_backup *pBackup;  /* Backup object used to copy data */
+	sqlite3 *to;             /* Database to copy to (file or database) */
+	sqlite3 *from;           /* Database to copy from (file or database) */
+	int len = (strlen(DATABASE) + strlen(".backup"))+1;	/* string-length */
+	char *backupname = malloc(sizeof(char) * len);		/* name of backup-db */
+	snprintf(backupname, len, "%s.backup", DATABASE);
+
+	/* Open the database file identified by DATABASE. Exit early if this fails
+	** for any reason. */
+	rc = sqlite3_open(backupname, &file);
+	if( rc==SQLITE_OK )
+	{
+		/* If this is a 'load' operation (isSave==0), then data is copied
+		** from the database file just opened to database database. 
+		** Otherwise, if this is a 'save' operation (isSave==1), then data
+		** is copied from database to file.  Set the variables from and
+		** to accordingly. */
+		from = (isSave ? database : file);
+		to   = (isSave ? file     : database);
+
+		/* Set up the backup procedure to copy from the "main" database of 
+		** connection file to the main database of connection database.
+		** If something goes wrong, pBackup will be set to NULL and an error
+		** code and  message left in connection to.
+		**
+		** If the backup object is successfully created, call backup_step()
+		** to copy data from file to database. Then call backup_finish()
+		** to release resources associated with the pBackup object.  If an
+		** error occurred, then  an error code and message will be left in
+		** connection to. If no error occurred, then the error code belonging
+		** to to is set to SQLITE_OK.
+		*/
+		pBackup = sqlite3_backup_init(to, "main", from, "main");
+		if( pBackup )
+		{
+			(void)sqlite3_backup_step(pBackup, -1);
+			(void)sqlite3_backup_finish(pBackup);
+		}
+		else fprintf(stdout, "backup_init failed\n");
+		rc = sqlite3_errcode(to);
+	}
+	/* Close the database connection opened on database file DATABASE
+	** and return the result of this function. */
+	(void)sqlite3_close(file);
+	free(backupname);
+	if (rc != SQLITE_OK)
+	{
+		fprintf(stderr, "SQL error: %s\nContact program developer.\n", sqlite3_errmsg(database));
+		return -1;
+	}
+	#ifdef DEBUG
+	(isSave ? printf("Database backuped\n") : printf("Database reverted\n") );
+	#endif
+	return 0;
+}
+
+/*
  *	Select command
  *	Executes commands from user as long as e/end is not typed
  */

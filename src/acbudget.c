@@ -132,10 +132,26 @@ char *config(char *command, sqlite3 *database)
 		{
 			printf("Database=%s\n", DATABASE);
 		}
+		else if ((strncmp(command, "bu\0", 3) == 0) || (strncmp(command, "backup\0", 7) == 0))
+		{
+			if (revertOrBackup(database, 1))
+			{
+				snprintf(command, COMMAND_LEN, "Failed to backup, exit program and contact developer!\n");
+				return command;
+			}
+		}
+		else if ((strncmp(command, "rv\0", 3) == 0) || (strncmp(command, "revert\0", 7) == 0))
+		{
+			if (revertOrBackup(database, 0))
+			{
+				snprintf(command, COMMAND_LEN, "Failed to revert: exit program and contact developer!\n");
+				return command;
+			}
+		}
 		else if ((strncmp(command, "h\0", 2) == 0) || (strncmp(command, "help\0", 5) == 0))
 		{
 			fprintf(stdout,
-			"Commands withing config:\n%-2s or %8s - %s\n%-2s or %8s - %s\n%-2s or %8s - %s\n%-2s or %8s - %s\n%-2s or %8s - %s\n%-2s or %8s - %s\n%-2s or %8s - %s\n%-2s or %8s - %s\n%14s - %s\n",
+			"Commands withing config:\n%-2s or %8s - %s\n%-2s or %8s - %s\n%-2s or %8s - %s\n%-2s or %8s - %s\n%-2s or %8s - %s\n%-2s or %8s - %s\n%-2s or %8s - %s\n%-2s or %8s - %s\n%-2s or %8s - %s\n%-2s or %8s - %s\n%14s - %s\n",
 			"h", "help", "Displays this help text",
 			"sv", "save", "Saves the current configuration to file",
 			"ld", "load", "Loads configuration from file",
@@ -144,6 +160,8 @@ char *config(char *command, sqlite3 *database)
 			"tb", "table", "Displays current table in database",
 			"yr", "year", "Displays default year",
 			"mn", "month", "Displays default month",
+			"bu", "backup", "Backups current database",
+			"rv", "revert", "Reverts the database to backup",
 			"variable=value", "sets variable to new value");
 		}
 		else
@@ -303,6 +321,7 @@ int main(int argc, char **argv)
 		/*
 		 *	General program purpose
 		 *	First configurates database according to a config-file (if not present, creates default)
+		 *	Secondly creates a backup database.
 		 *	Then accepts user input and acts accordingly.
 		 */
 		configurate(command, database);
@@ -310,6 +329,11 @@ int main(int argc, char **argv)
 		if ( rc ) {
 			fprintf(stderr, "Can't open database: %s\n", sqlite3_errmsg(database));
 			return(1);
+		}
+		if (revertOrBackup(database, 1))
+		{
+			freeAll();
+			return -1;
 		}
 		//	Startup userprompt for commands
 		len = get_command(command, "main"); command[len-1] = '\0';
@@ -328,5 +352,15 @@ int main(int argc, char **argv)
 		}
 		sqlite3_close(database);
 	}
+	if (freeAll())
+	{	
+		#ifdef DEBUG
+		fprintf(stderr, "freeAll() did not return correctly\n.");
+		#endif
+		return -1;
+	}
+	#ifdef DEBUG
+	fprintf(stderr, "freeAll() returned correctly\n.");
+	#endif
 	return 0;
 }

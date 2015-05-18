@@ -5,4 +5,5 @@ int callback(void *NotUsed, int argc, char **argv, char **azColName);
 int numbered_callback(void *NotUsed, int argc, char **argv, char **azColName);
 int decreasing_callback(void *NotUsed, int argc, char **argv, char **azColName);
 int insert(char *command, sqlite3 *database);
+int revertOrBackup(sqlite3 *database, int isSave);
 char *myselect(char *command, sqlite3 *database);

@@ -51,7 +51,7 @@ void copydate(char *date, char *token)
 	#endif
 	int i;
 	for (i = 0; i< 4; i++)
-			date[i] = (int) token[6+i];
+		date[i] = (int) token[6+i];
 	date[i++] = '-';
 	date[i++] = (int) token[3];
 	date[i++] = (int) token[4];
@@ -92,4 +92,68 @@ char *xstrtok(char *line, char *delims)
 	if(*saveline != '\0') /*trash the delim if necessary*/
 		*saveline++ = '\0';
 	return(p);
+}
+
+/*
+ *	Frees all allocated pre-defined pointers.
+ */
+int freeAll() {
+	if	(DATABASE != NULL)
+	{	
+		free(DATABASE);
+		#ifdef DEBUG
+		fprintf(stderr, "DATABASE freed\n");
+		#endif
+	}
+	if	(TABLE != NULL)		
+	{	
+		free(TABLE);
+		#ifdef DEBUG
+		fprintf(stderr, "TABLE freed\n");
+		#endif
+	}
+	if	(MONTH != NULL)	
+	{
+		free(MONTH);
+		#ifdef DEBUG
+		fprintf(stderr, "MONTH freed\n");
+		#endif
+	}
+	if	(YEAR != NULL)
+	{
+		free(YEAR);
+		#ifdef DEBUG
+		fprintf(stderr, "YEAR freed\n");
+		#endif
+	}
+	if	(CONFIG_FILENAME != NULL)	
+	{
+		free(CONFIG_FILENAME);
+		#ifdef DEBUG
+		fprintf(stderr, "CONFIG_FILENAME freed\n");
+		#endif
+	}
+	
+	if	(BACKUP_FILENAME != NULL)	
+	{
+		free(BACKUP_FILENAME);
+		#ifdef DEBUG
+		fprintf(stderr, "BACKUP_FILENAME freed\n");
+		#endif
+	}
+	if	(UNIQUE_ID != NULL)	
+	{
+		free(UNIQUE_ID);
+		#ifdef DEBUG
+		fprintf(stderr, "UNIQUE_ID freed\n");
+		#endif
+	}
+	if	(P_COUNTER != NULL)
+	{
+		free(P_COUNTER);
+		#ifdef DEBUG
+		fprintf(stderr, "P_COUNTER freed\n");
+		#endif
+	}	
+	return 0;
 }
