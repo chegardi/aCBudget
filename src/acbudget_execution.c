@@ -165,50 +165,33 @@ int readDNB(FILE *fp, sqlite3 *database)
 		}
 		else if (correct == 'y') {
 			fflush(stdin);
+			// Add comment
+			printf("Comment: ");
+			fgets(comment,36,stdin);
+			comment[strlen(comment)-1] = '\0';
+			//	Generate unique ID for insertion
 			// Prompts user for type of budget-line
-			printf("Type?: ");
+			printf("Type: ");
 			fgets(type, 16, stdin);
 			type[strlen(type)-1] = '\0'; // end type with \0 instead of \n
-			/* 
-			 *	Gives user information about how insertion will look if y_es is answered
-			 *	If user enteres e_dit, the comment section will be asked for editing
-			 *	n_o will just skip insertion, and continue with rest of file
-			 */
-			printf("---'%s', '%s', '%s', %s\nCorrect (y/n/e)? ", date, comment, type, amount);
-			fflush(stdin);
-			correct = fgetc(stdin);
-			if (correct == 'y' || correct == 'e') {
-				fflush(stdin);
-				if (correct = 'e') {
-					// User wanted to replace comment
-					printf("New comment: ");
-					fgets(comment,36,stdin);
-					comment[strlen(comment)-1] = '\0';
-				}
-				//	Generate unique ID for insertion
-				char id[ID_LEN];
-				generate_id(id);
-				//	Generate SQL statement for insertion based on information given
-				snprintf(insert_into, INSERT_LEN, "insert into %s values('%s', '%s', '%s', %s, '%s');", TABLE, date, comment, type, amount, id);
+			char id[ID_LEN];
+			generate_id(id);
+			//	Generate SQL statement for insertion based on information given
+			snprintf(insert_into, INSERT_LEN, "insert into %s values('%s', '%s', '%s', %s, '%s');", TABLE, date, comment, type, amount, id);
+			#ifdef DEBUG
+			fprintf(stderr, "%s\n", insert_into);
+			#endif
+			//	Execute SQL insertion statement
+			if ( sqlite3_exec(database, insert_into, callback, 0, &zErrMsg) != SQLITE_OK ) {
+				fprintf(stderr, "SQL error: %s\n", zErrMsg);
+				sqlite3_free(zErrMsg);
+				return;
+			} else {
 				#ifdef DEBUG
-				fprintf(stderr, "%s\n", insert_into);
-				#endif
-				//	Execute SQL insertion statement
-				if ( sqlite3_exec(database, insert_into, callback, 0, &zErrMsg) != SQLITE_OK ) {
-					fprintf(stderr, "SQL error: %s\n", zErrMsg);
-					sqlite3_free(zErrMsg);
-					return;
-				} else {
-					#ifdef DEBUG
-					printf("%s\n", insert_into);
-					#endif
-				}
-				counter++;
-			} else if (correct == 'n') {
-				#ifdef DEBUG
-				fprintf(stderr, "Values NOT added.\n");
+				printf("%s\n", insert_into);
 				#endif
 			}
+			counter++;
 		}
 	}
 	(*READ_COUNTER) = lines;

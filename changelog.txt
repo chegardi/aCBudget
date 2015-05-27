@@ -2,7 +2,7 @@ Changelog
 
 WEDNESDAY MAY 27th 2015
 *	Extended 'update' command to be able to update either combinations of "comment, type, amount" before possible insertion of second entry.
-*	Updated read from either DNB or Sparebanken Sør files to store the number of lines read, for easy "continue from last time" after program is shutdown.
+*	Updated read from either DNB or Sparebanken Sør files to store the number of lines read, for easy "continue from last time" after program is shutdown. Also some minor alterations in the procedure of reading/storing DNB lines.
 *	Updated License with full name.
 
 MONDAY MAY 18th 2015
