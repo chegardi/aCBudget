@@ -24,7 +24,7 @@
 char *DATABASE, *TABLE , *MONTH, *YEAR, *CONFIG_FILENAME, *BACKUP_FILENAME;
 //	utility variables
 char *UNIQUE_ID;
-int *P_COUNTER;
+int *P_COUNTER, *READ_COUNTER;
 
 //	main functions
 void configurate(char *command, sqlite3 *db);

@@ -44,7 +44,7 @@ void copynumber(int error, char* to, char* from)
  *	Date are reversed and wrong in files from DNB
  *	This method stores date correctly in *date pointer
  */
-void copydate(char *date, char *token)
+char* copydate(char *date, char *token)
 {
 	#ifdef DEBUG
         fprintf(stderr, "token.date=%s\n", token);
@@ -62,6 +62,7 @@ void copydate(char *date, char *token)
 	#ifdef DEBUG
 	fprintf(stderr, "regnskap.date=%s\n", date);
 	#endif
+	return date;
 }
 
 /*
@@ -95,65 +96,71 @@ char *xstrtok(char *line, char *delims)
 }
 
 /*
- *	Frees all allocated pre-defined pointers.
+ *	Frees all allocated pre-defined pointers if needed.
  */
 int freeAll() {
-	if	(DATABASE != NULL)
+	#ifdef DEBUG
+	fprintf(stderr, "Trying to free...\n");
+	#endif
+	if	(DATABASE != 0)
 	{	
+		#ifdef DEBUG
+		fprintf(stderr, "DATABASE\n");
+		#endif
 		free(DATABASE);
-		#ifdef DEBUG
-		fprintf(stderr, "DATABASE freed\n");
-		#endif
 	}
-	if	(TABLE != NULL)		
+	if	(TABLE != 0)		
 	{	
-		free(TABLE);
 		#ifdef DEBUG
-		fprintf(stderr, "TABLE freed\n");
+		fprintf(stderr, "TABLE\n");
 		#endif
+		free(TABLE);
 	}
 	if	(MONTH != NULL)	
 	{
-		free(MONTH);
 		#ifdef DEBUG
 		fprintf(stderr, "MONTH freed\n");
 		#endif
+		free(MONTH);
 	}
 	if	(YEAR != NULL)
 	{
-		free(YEAR);
 		#ifdef DEBUG
 		fprintf(stderr, "YEAR freed\n");
 		#endif
+		free(YEAR);
 	}
 	if	(CONFIG_FILENAME != NULL)	
 	{
-		free(CONFIG_FILENAME);
 		#ifdef DEBUG
 		fprintf(stderr, "CONFIG_FILENAME freed\n");
 		#endif
+		free(CONFIG_FILENAME);
 	}
 	
 	if	(BACKUP_FILENAME != NULL)	
 	{
-		free(BACKUP_FILENAME);
 		#ifdef DEBUG
 		fprintf(stderr, "BACKUP_FILENAME freed\n");
 		#endif
+		free(BACKUP_FILENAME);
 	}
 	if	(UNIQUE_ID != NULL)	
 	{
-		free(UNIQUE_ID);
 		#ifdef DEBUG
-		fprintf(stderr, "UNIQUE_ID freed\n");
+		fprintf(stderr, "UNIQUE_ID\n");
 		#endif
+		free(UNIQUE_ID);
 	}
 	if	(P_COUNTER != NULL)
 	{
-		free(P_COUNTER);
 		#ifdef DEBUG
-		fprintf(stderr, "P_COUNTER freed\n");
+		fprintf(stderr, "P_COUNTER\n");
 		#endif
-	}	
+		free(P_COUNTER);
+	}
+	#ifdef DEBUG
+	fprintf(stderr, "All non-null variables freed!\n");
+	#endif
 	return 0;
 }

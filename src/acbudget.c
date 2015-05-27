@@ -17,6 +17,8 @@ void configurate(char *command, sqlite3 *db)
 	strcpy(YEAR, "2014");
 	TABLE = malloc(sizeof(char)*strlen("r2014"));
 	strcpy(TABLE, "r2014");
+	READ_COUNTER = malloc(sizeof(int));
+	(*READ_COUNTER) = 0;
 	//	Checking for configuration file
 	CONFIG_FILENAME = malloc(sizeof(char) * strlen("config.ini"));
 	strcpy(CONFIG_FILENAME, "config.ini");
@@ -33,6 +35,7 @@ void configurate(char *command, sqlite3 *db)
 		fprintf(config_file, "table=%s\n", TABLE);
 		fprintf(config_file, "year=%s\n", YEAR);
 		fprintf(config_file, "month=%s\n", MONTH);
+		fprintf(config_file, "read=%d\n", (*P_COUNTER));
 		fclose(config_file);
 		#ifdef DEBUG
 		fprintf(stderr, "'%s' created\n", CONFIG_FILENAME);
@@ -82,6 +85,9 @@ void configurate(char *command, sqlite3 *db)
 					#ifdef DEBUG
 					fprintf(stderr, "DATABASE=%s\n", DATABASE);
 					#endif
+				} else if (strncmp(token, "read", 4) == 0) {
+					token = strtok(NULL, "");
+					(*READ_COUNTER) = atoi(token);
 				}
 			}
 		} while (!feof(config_file));
@@ -114,7 +120,7 @@ char *config(char *command, sqlite3 *database)
 		}
 		else if ((strncmp(command, "sw\0", 3) == 0) || (strncmp(command, "show\0", 5) == 0))
 		{
-			printf("Database: %s\nTable: %s\nMonth: %s\nYear: %s\n", DATABASE, TABLE, MONTH, YEAR);
+			printf("Database: %s\nTable: %s\nMonth: %s\nYear: %s\nRead: %d\n", DATABASE, TABLE, MONTH, YEAR, (*READ_COUNTER));
 		}
 		else if ((strncmp(command, "yr\0", 2) == 0) ||(strncmp(command, "year\0", 5) == 0))
 		{
@@ -127,6 +133,10 @@ char *config(char *command, sqlite3 *database)
 		else if ((strncmp(command, "tb\0", 3) == 0) || (strncmp(command, "table\0", 6) == 0))
 		{
 			printf("Table=%s\n", TABLE);
+		}
+		else if ((strncmp(command, "rd\0", 3) == 0) || (strncmp(command, "read\0", 5) == 0))
+		{
+			printf("Read=%d\n", (*READ_COUNTER));
 		}
 		else if ((strncmp(command, "db\0", 3) == 0) || (strncmp(command, "database\0", 9) == 0))
 		{
@@ -151,7 +161,7 @@ char *config(char *command, sqlite3 *database)
 		else if ((strncmp(command, "h\0", 2) == 0) || (strncmp(command, "help\0", 5) == 0))
 		{
 			fprintf(stdout,
-			"Commands withing config:\n%-2s or %8s - %s\n%-2s or %8s - %s\n%-2s or %8s - %s\n%-2s or %8s - %s\n%-2s or %8s - %s\n%-2s or %8s - %s\n%-2s or %8s - %s\n%-2s or %8s - %s\n%-2s or %8s - %s\n%-2s or %8s - %s\n%14s - %s\n",
+			"Commands withing config:\n%-2s or %8s - %s\n%-2s or %8s - %s\n%-2s or %8s - %s\n%-2s or %8s - %s\n%-2s or %8s - %s\n%-2s or %8s - %s\n%-2s or %8s - %s\n%-2s or %8s - %s\n%-2s or %8s - %s\n%-2s or %8s - %s\n%-2s or %8s - %s\n%14s - %s\n",
 			"h", "help", "Displays this help text",
 			"sv", "save", "Saves the current configuration to file",
 			"ld", "load", "Loads configuration from file",
@@ -160,6 +170,7 @@ char *config(char *command, sqlite3 *database)
 			"tb", "table", "Displays current table in database",
 			"yr", "year", "Displays default year",
 			"mn", "month", "Displays default month",
+			"rd", "read", "How many lines to skip if continuing reading from file",
 			"bu", "backup", "Backups current database",
 			"rv", "revert", "Reverts the database to backup",
 			"variable=value", "sets variable to new value");
@@ -198,7 +209,11 @@ char *config(char *command, sqlite3 *database)
 					DATABASE = malloc(sizeof(char)*strlen(token));
 					strcpy(DATABASE, token);
 				}
-				else
+				else if (strncmp(token, "read\0", 5) == 0) 
+				{
+					token = xstrtok(NULL, "");
+					(*READ_COUNTER) = atoi(token);
+				} else
 					printf("No such configurable variable: %s\n", token);
 			}
 			else
@@ -227,6 +242,7 @@ void save_config(char *command)
 		fprintf(config_file, "month=%s\n", MONTH);
 		fprintf(config_file, "year=%s\n", YEAR);
 		fprintf(config_file, "table=%s\n", TABLE);
+		fprintf(config_file, "read=%d\n", (*READ_COUNTER));
 		fclose(config_file);
 		snprintf(command, COMMAND_LEN, "Settings saved to new file '%s'\n", CONFIG_FILENAME);
 		return;
@@ -259,6 +275,8 @@ void save_config(char *command)
 						fprintf(new_file, "table=%s\n", TABLE);
 					} else if (strncmp(token, "database", 8) == 0) {  // database name is stored
 						fprintf(new_file, "database=%s\n", DATABASE);
+					} else if (strncmp(token, "read", 4) == 0) {
+						fprintf(new_file, "read=%d\n", (*READ_COUNTER));
 					}
 				}
 				else  // not a config variabel, user has manually added lines

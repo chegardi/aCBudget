@@ -13,20 +13,43 @@ int readfile(char *command, sqlite3 *database)
 	FILE *fp;
 	char filename[50], type;
 	filename[0] = '\0';
-	len = get_command(filename, "filename"); filename[len-1] = '\0';
-	while ((strncmp(filename, "e\0", 2) != 0) && (strncmp(filename, "end\0", 4) != 0)) {
+	while (1) {
+		len = get_command(filename, "filename"); filename[len-1] = '\0';
+		if ((strncmp(filename, "e\0", 2) == 0) || (strncmp(filename, "end\0", 4) == 0))
+			break;
 		fp = fopen(filename, "r");
-		printf("(1) DNB file or (2) Sparebanken Sør file? ");
+		if (fp == 0)
+		{
+			printf("'%s' does not exist\n", filename);
+			continue;
+		}
+		printf("DNB (1), Sparebanken Sør (2) file or continue last(3) ? ");
 		type = fgetc(stdin);
 		fflush(stdin);
 		if (type=='1')
+		{
+			(*READ_COUNTER) = 0;
 			counter += readDNB(fp, database);
+		}
 		else if (type=='2')
+		{
+			(*READ_COUNTER) = 0;
 			counter += readSBS(fp, database);
+		}
+		else if (type=='3') {
+			printf("Last DNB (1) or Sparebanken Sør (2) file ? ");
+			type = fgetc(stdin);
+			fflush(stdin);
+			if (type=='1')
+				counter += readDNB(fp, database);
+			else if (type=='2')
+				counter += readSBS(fp, database);
+			else
+				printf("%c was not a valid file option.\n", type);
+		}
 		else
-			printf("%c was not a valid file option.\n", type);
+			printf("%c was not a valid option.\n", type);
 		fclose(fp);
-		len = get_command(filename, "filename"); filename[len-1] = '\0';
 	}
 	return counter;
 }
@@ -41,10 +64,17 @@ int readDNB(FILE *fp, sqlite3 *database)
 	#ifdef DEBUG
 	fprintf(stderr, "read DNB\n");
 	#endif
-	int counter = 0, error;
+	int counter = 0, error, lines = 0;
 	char correct, input[INPUT_LEN], date[DATE_LEN], comment[COMMENT_LEN], type[TYPE_LEN], amount[AMOUNT_LEN], insert_into[INSERT_LEN], *token, *zErrMsg = 0;
 	date[0] = '\0'; comment[0] = '\0'; type[0] = '\0';
 	while (fgets(input, INPUT_LEN, fp) != NULL) {
+		lines++;
+		if (strlen(input) <= 1)	continue;	//	empty line
+		else if ((*READ_COUNTER) > 0)	//	skip line
+		{
+			(*READ_COUNTER)--;
+			continue;
+		}
 		/*
 		 *	"Dato";"Forklaring";"Rentedato";"Uttak";"Innskudd"
 		 *	"14.12.2014";"Morsom sparing kort avrunding Reservert transaksjon";"";"3,00";""
@@ -129,7 +159,10 @@ int readDNB(FILE *fp, sqlite3 *database)
 		printf("-'%s', '%s', %s\nAdd? (y/n/q): ", date, comment, amount);
 		correct = fgetc(stdin);
 		if (correct == 'q')
+		{
+			lines--;
 			break;
+		}
 		else if (correct == 'y') {
 			fflush(stdin);
 			// Prompts user for type of budget-line
@@ -178,6 +211,7 @@ int readDNB(FILE *fp, sqlite3 *database)
 			}
 		}
 	}
+	(*READ_COUNTER) = lines;
 	return counter;	// Insertions made
 }
 
@@ -191,10 +225,25 @@ int readSBS(FILE *fp, sqlite3 *database)
 	#ifdef DEBUG
 	fprintf(stderr, "read SBS\n");
 	#endif
-	int counter = 0, error;
-	char input[INPUT_LEN], date[DATE_LEN], insert_into[INSERT_LEN], dateday[3], datemonth[3], comment[COMMENT_LEN], type[TYPE_LEN], amount[AMOUNT_LEN], correct, *token = 0, *datetoken = 0, *zErrMsg = 0;
-	while (fgets(input, INPUT_LEN, fp) != NULL)
+	int counter = 0, error, lines = 0;
+	char	input[INPUT_LEN],					//	input
+			insert_into[INSERT_LEN],		//	insert_into TABLE values(
+			date[DATE_LEN],					//	date
+			comment[COMMENT_LEN],	//	comment
+			type[TYPE_LEN],					//	type
+			amount[AMOUNT_LEN],		//	amount
+			dateday[3],								//	dd daydate
+			datemonth[3],							//	mm monthdate
+			correct, *token, *datetoken, *zErrMsg;	//	diverse
+	while (fgets(input, INPUT_LEN, fp) != NULL)	//	while file has input
 	{
+		lines++;
+		if (strlen(input) <= 1)	continue;	//	empty line
+		else if ((*READ_COUNTER) > 0)	//	skip line
+		{
+			(*READ_COUNTER)--;
+			continue;
+		}
 		/*
 		 *	This is input format of SBS files. Separations
 		 *	is tabulated, and not spaced.
@@ -232,9 +281,12 @@ int readSBS(FILE *fp, sqlite3 *database)
 			snprintf(date, 11, "%s-%s-%s", YEAR, datemonth, dateday);
 		} else {
 			//	No date was found in explanation, prompts user for input
-			printf("Date: %s | Comment: %s \nNew date YYYY-MM-DD: ", date, token);
+			datetoken = malloc(sizeof(char)*DATE_LEN);
+			strncpy(datetoken, date, DATE_LEN);
+			copydate(date, datetoken);
+			/*printf("Date: %s | Comment: %s \nNew date YYYY-MM-DD: ", copydate(date, datetoken), token);
 			fgets(date, 11, stdin);
-			fflush(stdin);
+			fflush(stdin);*/
 		}
 		//	Last token is amount
 		token = xstrtok(NULL, "	");
@@ -293,9 +345,14 @@ int readSBS(FILE *fp, sqlite3 *database)
 			fprintf(stderr, "Values NOT added.\n");
 			#endif
 		} else if (correct == 'q') {
+			lines--;
 			break;
 		}
 	}
+	#ifdef	DEBUG
+	fprintf(stderr, "storing %d into READ_COUNTER (%d)\n", lines, (*READ_COUNTER));
+	#endif
+	(*READ_COUNTER) = lines;
 	return counter;	//	Insertions made
 }
 
@@ -304,10 +361,15 @@ int readSBS(FILE *fp, sqlite3 *database)
  */
 int update(char *command, sqlite3 *database)
 {
-	int updated = 0,  len;
-	char *commandhelp = malloc(sizeof(char) * COMMAND_LEN), *select = malloc(sizeof(char) * SELECT_LEN) , *zErrMsg, correct;
+	int updated = 0, sql_len, len;
+	char	*commandhelp = malloc(sizeof(char) * COMMAND_LEN),	//	to store usage-help
+				*select = malloc(sizeof(char) * SELECT_LEN) ,	//	used by sql-queries
+				*comment = malloc(sizeof(char) * COMMENT_LEN),	//	to store comments
+				*type = malloc(sizeof(char) * TYPE_LEN),	//	to store types
+				*amount = malloc(sizeof(char) * AMOUNT_LEN),	//	to store amounts
+				*day, *zErrMsg, correct;	//	helpful
+	if (commandhelp == NULL || select == NULL)	return -1;	//	fail-safe
 	(*commandhelp) = '\0'; (*select) = '\0';	//	default start
-	if (commandhelp == NULL || select == NULL)	return -1;
 	snprintf(commandhelp, COMMAND_LEN, "day in month (%s)", MONTH);
 	len = get_update_command(command, commandhelp); command[len-1] = '\0';
 	P_COUNTER = malloc(sizeof(int));
@@ -326,7 +388,7 @@ int update(char *command, sqlite3 *database)
 		}
 		if (*P_COUNTER > 1) {
 			//	give user ability to divide/update entries
-			char *day = malloc(sizeof(char) * 3); 
+			day = malloc(sizeof(char) * 3); 
 			snprintf(day, 3, "%s", command);
 			len = get_update_command(command, "number to update"); command[len-1] = '\0';
 			#ifdef DEBUG
@@ -344,46 +406,77 @@ int update(char *command, sqlite3 *database)
 				//	allocating space for id from rownumber
 				UNIQUE_ID = malloc(sizeof(char) * ID_LEN);
 				snprintf(select, SELECT_LEN, "select id from %s where date = '%s-%s-%s'", TABLE, YEAR, MONTH, day);
+				//	use decreasing_callback method to fetch correct UNIQUE_ID
 				if (sqlite3_exec(database, select, decreasing_callback, 0, &zErrMsg) != SQLITE_OK) {
 					fprintf(stderr, "SQL error: %s\n", zErrMsg);
 					sqlite3_free(zErrMsg);
 					return -1;
 				}
-				//	update amount of selected row
-				char *amount = malloc(sizeof(char) * 15);
-				len = get_update_command(amount, "amount"); amount[len-1] = '\0';
-				snprintf(select, SELECT_LEN, "update %s set amount = %s where id = '%s'", TABLE, amount, UNIQUE_ID);
-				if (sqlite3_exec(database, select, NULL, 0, &zErrMsg) != SQLITE_OK) {
-					fprintf(stderr, "SQL error %s\n", zErrMsg);
-					sqlite3_free(zErrMsg);
-					return -1;
+				//	enter new text/number to alter comment, type and/or amount of selected row
+				sql_len = 0;	//	the total length of sql-command initialization
+				sql_len += snprintf(select, SELECT_LEN, "update %s set", TABLE);
+				(*P_COUNTER) = sql_len;
+				len = get_update_command(comment, "comment"); comment[len-1] = '\0';
+				if (len > 1) {	//	comment is to be updated
+					sql_len += snprintf(select+sql_len, SELECT_LEN-sql_len, " comment = '%s'", comment);
 				}
-				updated++;	//	row updated
+				len = get_update_command(type, "type"); type[len-1] = '\0';
+				if (len > 1) {	//	type is to be updated
+					if (sql_len > (*P_COUNTER)) {	//	need to add comma after previous variable
+						*(select+sql_len++) = ',';
+						*(select+sql_len) = '\0';
+					}
+					sql_len += snprintf(select+sql_len, SELECT_LEN-sql_len, " type = '%s'", type);
+					#ifdef DEBUG
+					fprintf(stderr,"select: %s\n", select);
+					#endif
+				}
+				len = get_update_command(amount, "amount"); amount[len-1] = '\0';
+				if (len > 1) {	//	amount is to be updated
+					if (sql_len > (*P_COUNTER)) {	//	need to add comma after previous variable
+						*(select+sql_len++) = ',';
+						*(select+sql_len) = 0;
+					}
+					sql_len += snprintf(select+sql_len, SELECT_LEN-sql_len, " amount = %s", amount);
+				}
 				#ifdef DEBUG
-				fprintf(stderr, "Row with id='%s' updated\n", UNIQUE_ID);
+				fprintf(stderr, "comment, type, amount = '%s', '%s', '%s'\n%s\n", comment, type, amount, select);
 				#endif
-				//	check if user wants to add another row
-				printf("Want to add another row with new type and same comment on same date?: ");
-				correct = fgetc(stdin);	fflush(stdin);
-				if (correct == 'y') {	//	add another row with new comment, type and amount on same date
-					char *comment = malloc(sizeof(char) * COMMENT_LEN);
-					len = get_update_command(comment, "comment"); comment[len-1] = '\0';	//	comment
-					len = get_update_command(command, "type"); command[len-1] = '\0';			//	type
-					get_update_command(amount, "amount"); amount[ID_LEN-1] = '\0';				//	amount
-					generate_id(UNIQUE_ID);																					//	id
-					//	insert into TABLE values (DATE, COMMENT, TYPE, AMOUNT, ID);
-					snprintf(select, SELECT_LEN, "insert into %s values('%s-%s-%s', '%s', '%s', %s, '%s');",
-						TABLE, YEAR, MONTH, day, comment, command, amount, UNIQUE_ID);
-					if (sqlite3_exec(database, select, NULL, 0, &zErrMsg) != SQLITE_OK) {
-						fprintf(stderr, "SQL error %s\n", zErrMsg);
+				//snprintf(select, SELECT_LEN, "update %s set comment = '%s', type = '%s', amount = %s where id = '%s'", TABLE, comment, type, amount, UNIQUE_ID);
+				if (sql_len > (*P_COUNTER)) {	//	at least one variable to update
+					(*P_COUNTER) = sql_len;
+					len = strlen(" where id = 'abc12'");	//	length of rest
+					sql_len += snprintf(select+sql_len, SELECT_LEN-sql_len, " where id = '%s';", UNIQUE_ID);
+					if (((*P_COUNTER)+len != sql_len) && (sqlite3_exec(database, select, NULL, 0, &zErrMsg) != SQLITE_OK)) {
+						fprintf(stderr, "%d =? %d || SQL error %s\n", (*P_COUNTER)+len, sql_len, zErrMsg);
 						sqlite3_free(zErrMsg);
 						return -1;
 					}
-					//	free insert specific malloc
-					free(comment); 
+					updated++;	//	row updated
+					#ifdef DEBUG
+					fprintf(stderr, "Row with id='%s' updated\n", UNIQUE_ID);
+					#endif
+					//	check if user wants to add another row
+					printf("Want to add another row with new type and same comment on same date?: ");
+					correct = fgetc(stdin);	fflush(stdin);
+					if (correct == 'y') {	//	add another row with new comment, type and amount on same date
+						comment = malloc(sizeof(char) * COMMENT_LEN);
+						len = get_update_command(comment, "comment"); comment[len-1] = '\0';	//	comment
+						len = get_update_command(type, "type"); type[len-1] = '\0';			//	type
+						get_update_command(amount, "amount"); amount[ID_LEN-1] = '\0';				//	amount
+						generate_id(UNIQUE_ID);																					//	id
+						//	insert into TABLE values (DATE, COMMENT, TYPE, AMOUNT, ID);
+						snprintf(select, SELECT_LEN, "insert into %s values('%s-%s-%s', '%s', '%s', %s, '%s');",
+							TABLE, YEAR, MONTH, day, comment, command, amount, UNIQUE_ID);
+						if (sqlite3_exec(database, select, NULL, 0, &zErrMsg) != SQLITE_OK) {
+							fprintf(stderr, "SQL error %s\n", zErrMsg);
+							sqlite3_free(zErrMsg);
+							return -1;
+						}
+					}
 				}
 				//	free update specific malloc
-				free(amount); free(UNIQUE_ID);
+				free(UNIQUE_ID);
 			}
 			//	free day-storage
 			free(day); 
@@ -391,7 +484,7 @@ int update(char *command, sqlite3 *database)
 		snprintf(commandhelp, COMMAND_LEN, "day in month (%s)", MONTH);
 		len = get_update_command(command, commandhelp); command[len-1] = '\0';
 	}
-	free(commandhelp); free(select); free(P_COUNTER);
+	free(commandhelp); free(comment), free(type), free(amount), free(select); 
 	return updated;
 }
 

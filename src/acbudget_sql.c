@@ -70,7 +70,7 @@ int decreasing_callback(void *NotUsed, int argc, char **argv, char **azColName)
 			}
 		}
 	}
-	 (*P_COUNTER)--;
+	(*P_COUNTER)--;
 	return 0;
 }
 
