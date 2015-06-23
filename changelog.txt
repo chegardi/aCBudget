@@ -1,5 +1,10 @@
 Changelog
 
+SUNDAY JUNE 21st 2015
+*	Improved the backend of update command to utilize SQLite functionality - improving performance. Also fixed a minor bug occuring when assigning 'type' to the new line of an update.
+*	Also removed automatic backup of database when program is ended properly. Backup must be done manually by the user through config menu.
+*	Reordered a lot of code to be within CCodingStandard at: <a>http://users.ece.cmu.edu/~eno/coding/CCodingStandard.html</a>
+
 WEDNESDAY MAY 27th 2015
 *	Extended 'update' command to be able to update either combinations of "comment, type, amount" before possible insertion of second entry.
 *	Updated read from either DNB or Sparebanken Sør files to store the number of lines read, for easy "continue from last time" after program is shutdown. Also some minor alterations in the procedure of reading/storing DNB lines.

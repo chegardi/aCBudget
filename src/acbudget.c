@@ -5,7 +5,7 @@
  */
 void configurate(char *command, sqlite3 *db)
 {
-	#ifdef DEBUG
+	#if DEBUG
 	fprintf(stderr, "Configurating..\n");
 	#endif
     //	Initiating default values
@@ -24,9 +24,8 @@ void configurate(char *command, sqlite3 *db)
 	strcpy(CONFIG_FILENAME, "config.ini");
 	FILE *config_file;
 	config_file = fopen(CONFIG_FILENAME, "r");
-	if (config_file == NULL)  // file does not exist
-	{
-		#ifdef DEBUG
+	if (config_file == NULL) {	// file does not exist 
+		#if DEBUG
 		fprintf(stderr, "Creating '%s'\n", CONFIG_FILENAME);
 		#endif
 		config_file = fopen("config.ini", "w");
@@ -37,31 +36,28 @@ void configurate(char *command, sqlite3 *db)
 		fprintf(config_file, "month=%s\n", MONTH);
 		fprintf(config_file, "read=%d\n", (*P_COUNTER));
 		fclose(config_file);
-		#ifdef DEBUG
+		#if DEBUG
 		fprintf(stderr, "'%s' created\n", CONFIG_FILENAME);
 		#endif
 		snprintf(command, COMMAND_LEN, "'%s' created and default settings loaded\n", CONFIG_FILENAME);
-	}
-	else  // file exists
-	{
+	}	//	file did not exist
+	else  {	// file exists
 		int counter = 1;
 		char *token;
 		do {
-			if (fscanf(config_file, "%s\n", command) > COMMAND_LEN)
-			{
+			if (fscanf(config_file, "%s\n", command) > COMMAND_LEN) {
 				fprintf(stderr, "ERROR ON LINE #%d IN '%s'\nVALUE TOO LONG\n", counter, CONFIG_FILENAME);
 				exit(EXIT_FAILURE);
-			}
+			}	//	too long line read
 			counter++;
-			if (command[0] != '#')	//	not a comment
-			{
+			if (command[0] != '#')	{	//	not a comment
 				token = strtok(command, "=");
 				if (strncmp(token, "year", 4) == 0) {
 					token = strtok(NULL, "");
 					free(YEAR);
 					YEAR = malloc(sizeof(char)*strlen(token));
 					strcpy(YEAR, token);
-					#ifdef DEBUG
+					#if DEBUG
 					fprintf(stderr, "YEAR=%s\n", YEAR);
 					#endif
 				} else if (strncmp(token, "month", 5) == 0) {
@@ -74,7 +70,7 @@ void configurate(char *command, sqlite3 *db)
 					free(TABLE);
 					TABLE = malloc(sizeof(char)*strlen(token));
 					strcpy(TABLE, token);
-					#ifdef DEBUG
+					#if DEBUG
 					fprintf(stderr, "TABLE=%s\n", TABLE);
 					#endif
 				} else if (strncmp(token, "database", 8) == 0) {
@@ -82,21 +78,21 @@ void configurate(char *command, sqlite3 *db)
 					free(DATABASE);
 					DATABASE = malloc(sizeof(char)*strlen(token));
 					strcpy(DATABASE, token);
-					#ifdef DEBUG
+					#if DEBUG
 					fprintf(stderr, "DATABASE=%s\n", DATABASE);
 					#endif
 				} else if (strncmp(token, "read", 4) == 0) {
 					token = strtok(NULL, "");
 					(*READ_COUNTER) = atoi(token);
 				}
-			}
-		} while (!feof(config_file));
+			}	//	done with line
+		} while (!feof(config_file));	//	lines left to check
 		fclose(config_file);
-		#ifdef DEBUG
+		#if DEBUG
 		fprintf(stderr, "'%s' imported\n", CONFIG_FILENAME);
 		#endif
 		snprintf(command, COMMAND_LEN, "Settings loaded from '%s'\n", CONFIG_FILENAME);
-	}	
+	}	//	file existed
 }
 
 /*
@@ -108,58 +104,45 @@ char *config(char *command, sqlite3 *database)
 	char *token;
 	len = get_command(command, "config"); command[len-1] = '\0';
 	while ((strncmp(command, "e\0", 2) != 0) && (strncmp(command, "end\0", 4) != 0)) {
-		if ((strncmp(command, "sv\0", 3) == 0) || (strncmp(command, "save\0", 5) == 0))
-		{
+		if ((strncmp(command, "sv\0", 3) == 0) || (strncmp(command, "save\0", 5) == 0)) {
 			save_config(command);
 			printf("%s", command);
 		}
-		else if ((strncmp(command, "ld\0", 3) == 0) || (strncmp(command, "load\0", 5) == 0))
-		{
+		else if ((strncmp(command, "ld\0", 3) == 0) || (strncmp(command, "load\0", 5) == 0)) {
 			configurate(command, database);
 			printf("%s", command);
 		}
-		else if ((strncmp(command, "sw\0", 3) == 0) || (strncmp(command, "show\0", 5) == 0))
-		{
+		else if ((strncmp(command, "sw\0", 3) == 0) || (strncmp(command, "show\0", 5) == 0)) {
 			printf("Database: %s\nTable: %s\nMonth: %s\nYear: %s\nRead: %d\n", DATABASE, TABLE, MONTH, YEAR, (*READ_COUNTER));
 		}
-		else if ((strncmp(command, "yr\0", 2) == 0) ||(strncmp(command, "year\0", 5) == 0))
-		{
+		else if ((strncmp(command, "yr\0", 2) == 0) ||(strncmp(command, "year\0", 5) == 0)) {
 			printf("Year=%s\n", YEAR);
 		}
-		else if ((strncmp(command, "mn\0", 3) == 0) || (strncmp(command, "month\0", 6) == 0))
-		{
+		else if ((strncmp(command, "mn\0", 3) == 0) || (strncmp(command, "month\0", 6) == 0)) {
 			printf("Month=%s\n", MONTH);
 		}
-		else if ((strncmp(command, "tb\0", 3) == 0) || (strncmp(command, "table\0", 6) == 0))
-		{
+		else if ((strncmp(command, "tb\0", 3) == 0) || (strncmp(command, "table\0", 6) == 0)) {
 			printf("Table=%s\n", TABLE);
 		}
-		else if ((strncmp(command, "rd\0", 3) == 0) || (strncmp(command, "read\0", 5) == 0))
-		{
+		else if ((strncmp(command, "rd\0", 3) == 0) || (strncmp(command, "read\0", 5) == 0)) {
 			printf("Read=%d\n", (*READ_COUNTER));
 		}
-		else if ((strncmp(command, "db\0", 3) == 0) || (strncmp(command, "database\0", 9) == 0))
-		{
+		else if ((strncmp(command, "db\0", 3) == 0) || (strncmp(command, "database\0", 9) == 0)) {
 			printf("Database=%s\n", DATABASE);
 		}
-		else if ((strncmp(command, "bu\0", 3) == 0) || (strncmp(command, "backup\0", 7) == 0))
-		{
-			if (revertOrBackup(database, 1))
-			{
+		else if ((strncmp(command, "bu\0", 3) == 0) || (strncmp(command, "backup\0", 7) == 0)) {
+			if (revert_or_backup(database, 1)) {
 				snprintf(command, COMMAND_LEN, "Failed to backup, exit program and contact developer!\n");
 				return command;
 			}
 		}
-		else if ((strncmp(command, "rv\0", 3) == 0) || (strncmp(command, "revert\0", 7) == 0))
-		{
-			if (revertOrBackup(database, 0))
-			{
+		else if ((strncmp(command, "rv\0", 3) == 0) || (strncmp(command, "revert\0", 7) == 0)) {
+			if (revert_or_backup(database, 0)) {
 				snprintf(command, COMMAND_LEN, "Failed to revert: exit program and contact developer!\n");
 				return command;
 			}
 		}
-		else if ((strncmp(command, "h\0", 2) == 0) || (strncmp(command, "help\0", 5) == 0))
-		{
+		else if ((strncmp(command, "h\0", 2) == 0) || (strncmp(command, "help\0", 5) == 0)) {
 			fprintf(stdout,
 			"Commands withing config:\n%-2s or %8s - %s\n%-2s or %8s - %s\n%-2s or %8s - %s\n%-2s or %8s - %s\n%-2s or %8s - %s\n%-2s or %8s - %s\n%-2s or %8s - %s\n%-2s or %8s - %s\n%-2s or %8s - %s\n%-2s or %8s - %s\n%-2s or %8s - %s\n%14s - %s\n",
 			"h", "help", "Displays this help text",
@@ -175,8 +158,7 @@ char *config(char *command, sqlite3 *database)
 			"rv", "revert", "Reverts the database to backup",
 			"variable=value", "sets variable to new value");
 		}
-		else
-		{
+		else {
 			len = strlen(command);
 			token = xstrtok(command, "=");
 			if (len != strlen(token))
@@ -225,6 +207,53 @@ char *config(char *command, sqlite3 *database)
 }
 
 /*
+ *	Main method to initialize program
+ */
+int main(int argc, char **argv)
+{
+	sqlite3 *database;
+	char *zErrMsg = 0, command[COMMAND_LEN], *printout;
+	int rc, len;
+	/*
+	 *	General program purpose
+	 *	First configurates database according to a config-file (if not present, creates default)
+	 *	Then accepts user input and acts accordingly.
+	 */
+	configurate(command, database);
+	rc = sqlite3_open(DATABASE, &database);
+	if ( rc ) {
+		fprintf(stderr, "Can't open database: %s\n", sqlite3_errmsg(database));
+		return(1);
+	}
+	//	Startup userprompt for revert_or_backup
+	len = get_command(command, "main"); command[len-1] = '\0';
+	//	Loop user for input while user don't want to quit
+	while ((strncmp(command, "q\0", 2) != 0) && (strncmp(command, "quit\0", 5) != 0)) {
+		#if DEBUG
+		fprintf(stderr, "%s (%d)\n", command, len);
+		#endif
+		printout = execute_command(command, database);
+		//	Printout if there is anything to print
+		if (strlen(printout) > 1) {
+			printf("%s", printout);
+		}
+		//	Fetch a new command
+		len = get_command(command, "main"); command[len-1] = '\0';
+	}
+	sqlite3_close(database);
+	if (freeAll()) {	
+		#if DEBUG
+		fprintf(stderr, "freeAll() did not return correctly\n.");
+		#endif
+		return -1;
+	}
+	#if DEBUG
+	fprintf(stderr, "freeAll() returned correctly\n.");
+	#endif
+	return 0;
+}
+
+/*
  *	Saves current configuration to 'config.ini'
  */
 void save_config(char *command)
@@ -233,7 +262,7 @@ void save_config(char *command)
 	config_file = fopen(CONFIG_FILENAME, "r");
 	if (config_file == NULL)  // File does not exist, creating new file
 	{
-		#ifdef DEBUG
+		#if DEBUG
 		fprintf(stderr, "No old config file, creating new.\n");
 		#endif
 		config_file = fopen(CONFIG_FILENAME, "w");
@@ -247,25 +276,22 @@ void save_config(char *command)
 		snprintf(command, COMMAND_LEN, "Settings saved to new file '%s'\n", CONFIG_FILENAME);
 		return;
 	}
-	else  // file exists, merging
-	{
-		#ifdef DEBUG
+	else  {	// file exists, merging
+		#if DEBUG
 		fprintf(stderr, "Old config file found, merging...\n");
 		#endif
 		char *token, tmpname[strlen(CONFIG_FILENAME)];
 		tmpnam(tmpname);
 		//_mktemp_s(tmpname, strlen(CONFIG_FILENAME));
 		FILE *new_file = fopen(tmpname, "w");
-		#ifdef DEBUG
+		#if DEBUG
 		fprintf(stderr, "Created file with temp-name: '%s'\n", tmpname);
 		#endif
 		int counter = 1, file_size = 0;
 		do {
-			if (fgets(command, COMMAND_LEN, config_file) != NULL)
-			{
+			if (fgets(command, COMMAND_LEN, config_file) != NULL) {
 				counter++;
-				if (command[0] != '#')  // config-variabel
-				{
+				if (command[0] != '#')  {	// config-variabel 
 					token = strtok(command, "="); // '=' is config variabel delim
 					if (strncmp(token, "year", 4) == 0) {  // year is stored
 						fprintf(new_file, "year=%s\n", YEAR);
@@ -279,106 +305,24 @@ void save_config(char *command)
 						fprintf(new_file, "read=%d\n", (*READ_COUNTER));
 					}
 				}
-				else  // not a config variabel, user has manually added lines
-				{
+				else  {	// not a config variabel, user has manually added lines
 					fprintf(new_file, "%s", command);
 				}
 			}
-			else if (command == NULL)  // not supposed to happen
-			{
+			else if (command == NULL)  {	// not supposed to happen
 				fprintf(stderr, "ERROR ON LINE #%d IN 'config.ini'\n", counter);
 				exit(EXIT_FAILURE);
 			}
 		} while (!feof(config_file) && counter < 10);
 		fclose(config_file);
 		fclose(new_file);
-		if (remove(CONFIG_FILENAME))  // failed to remove old config file
-		{
+		if (remove(CONFIG_FILENAME))  {	// failed to remove old config file
 			printf("Failed to remove old 'config.ini';\n%s\n", strerror(errno));
 		}
-		if (rename(tmpname, CONFIG_FILENAME))  // failed to rename new config file
-		{
+		if (rename(tmpname, CONFIG_FILENAME))  {	// failed to rename new config file
 			printf("Failed to rename new 'config.ini';\n%s\n", strerror(errno));
 		}
 		snprintf(command, COMMAND_LEN, "Settings saved to '%s'\n", CONFIG_FILENAME);
 	}
 	return;
-}
-
-/*
- *	Main method to initialize program
- */
-int main(int argc, char **argv)
-{
-	sqlite3 *database;
-	char *zErrMsg = 0, command[COMMAND_LEN], *printout;
-	int rc, len;
-	
-	/*
-	 *	Manual database and SQL statement given with program execution, ie.
-	 *	$ aCBudget database "statement;"
-	 */
-	if (argc == 3)
-	{
-		//return easyExecuteSQL(argc, argv);
-		//sqlite3 *database;
-		//char *zErrMsg = 0;
-		rc = sqlite3_open(argv[1], &database);
-		if ( rc ) {
-			fprintf(stderr, "Can't open database: %s\n", sqlite3_errmsg(database));
-			return(1);
-		}
-		rc = sqlite3_exec(database, argv[2], callback, 0, &zErrMsg);
-		if (rc != SQLITE_OK) {
-			fprintf(stderr, "SQL error: %s\n", zErrMsg);
-			sqlite3_free(zErrMsg);
-		}
-		sqlite3_close(database);
-	}
-	else {
-		/*
-		 *	General program purpose
-		 *	First configurates database according to a config-file (if not present, creates default)
-		 *	Secondly creates a backup database.
-		 *	Then accepts user input and acts accordingly.
-		 */
-		configurate(command, database);
-		rc = sqlite3_open(DATABASE, &database);
-		if ( rc ) {
-			fprintf(stderr, "Can't open database: %s\n", sqlite3_errmsg(database));
-			return(1);
-		}
-		if (revertOrBackup(database, 1))
-		{
-			freeAll();
-			return -1;
-		}
-		//	Startup userprompt for commands
-		len = get_command(command, "main"); command[len-1] = '\0';
-		//	Loop user for input while user don't want to quit
-		while ((strncmp(command, "q\0", 2) != 0) && (strncmp(command, "quit\0", 5) != 0)) {
-			#ifdef DEBUG
-			fprintf(stderr, "%s (%d)\n", command, len);
-			#endif
-			printout = execute_command(command, database);
-			//	Printout if there is anything to print
-			if (strlen(printout) > 1) {
-				printf("%s", printout);
-			}
-			//	Fetch a new command
-			len = get_command(command, "main"); command[len-1] = '\0';
-		}
-		sqlite3_close(database);
-	}
-	if (freeAll())
-	{	
-		#ifdef DEBUG
-		fprintf(stderr, "freeAll() did not return correctly\n.");
-		#endif
-		return -1;
-	}
-	#ifdef DEBUG
-	fprintf(stderr, "freeAll() returned correctly\n.");
-	#endif
-	return 0;
 }

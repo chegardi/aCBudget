@@ -10,24 +10,30 @@
 #include "acbudget_execution.h"
 
 //	pre-defined constants
-#define COMMAND_LEN 256
-#define PRINT_LEN 1024
-#define INSERT_LEN 256
-#define SELECT_LEN 256
-#define DATE_LEN 11
-#define COMMENT_LEN 100
-#define TYPE_LEN 16
-#define AMOUNT_LEN 16
-#define ID_LEN 6
-#define INPUT_LEN 350
+#define AMOUNT_LEN 16		//	amounts bigger than 100000000000000 would be great - as income
+#define COMMAND_LEN 256	//	regular length
+#define COMMENT_LEN 101	//	max length of comment is 100 + \0
+#define DATE_LEN 11			//	length of date: YYYY-MM-DD\0 = 11 chars
+#define ID_LEN 6					//	unique id is 5 chars + \0
+#define INPUT_LEN 512			//	regular length x2
+#define INSERT_LEN 256		//	for use during insert-actions on SQL
+#define PRINT_LEN 1024		//	regular length x4
+#define SELECT_LEN 256		//	for use during select-actions on SQL
+#define TYPE_LEN 16			//	max length of type is 15 + \0
 //	database variables
-char *DATABASE, *TABLE , *MONTH, *YEAR, *CONFIG_FILENAME, *BACKUP_FILENAME;
+char	*DATABASE, 
+		*TABLE , 
+		*MONTH,
+		*YEAR,
+		*CONFIG_FILENAME,
+		*BACKUP_FILENAME;
 //	utility variables
 char *UNIQUE_ID;
-int *P_COUNTER, *READ_COUNTER;
+int 	*P_COUNTER,
+		*READ_COUNTER;
 
 //	main functions
 void configurate(char *command, sqlite3 *db);
 char *config(char *command, sqlite3 *database);
-void save_config(char *command);
 int main(int argc, char **argv);
+void save_config(char *command);
