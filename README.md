@@ -19,4 +19,4 @@ Wishes from the future:
 3. Network capability
 4. Smartphone capability
 
-*See http://www.sqlite.org/ for download/interface and information on SQLite.
+*See http://www.sqlite.org/ for download/interface and information on SQLite. I have now added the folder 'sql/' with the required files - but be sure to spread the word of SQLite and their awesome work!

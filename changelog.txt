@@ -1,5 +1,9 @@
 Changelog
 
+THURSDAY JULY 2nd 2015
+*	Added a nearly empty database 'database.db' with only one test-row, for easier quick access for users.
+*	Also added the SQLite source file I use 'sql/*' - remember to check out their site, and spread the word of their awesome work!
+
 SUNDAY JUNE 21st 2015
 *	Improved the backend of update command to utilize SQLite functionality - improving performance. Also fixed a minor bug occuring when assigning 'type' to the new line of an update.
 *	Also removed automatic backup of database when program is ended properly. Backup must be done manually by the user through config menu.

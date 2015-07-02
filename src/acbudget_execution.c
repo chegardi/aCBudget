@@ -407,9 +407,10 @@ int update(char *command, sqlite3 *database)
 	do {
 		snprintf(commandhelp, COMMAND_LEN, "day in month (%s)", MONTH);
 		len = get_update_command(command, commandhelp); command[len-1] = '\0';
+		if ((strncmp(command, "e\0", 2) != 0) || (strncmp(command, "end\0", 4) != 0))	break;
 		(*P_COUNTER) = 1;
 		//	find entries based on day of month
-		snprintf(select, SELECT_LEN, "select comment, amount, type from %s where date = '%s-%s-%s'", TABLE, YEAR, MONTH, command);
+		snprintf(select, SELECT_LEN, "select comment, amount, type from %s where date = '%04s-%02s-%02s'", TABLE, YEAR, MONTH, command);
 		#if DEBUG
 		fprintf(stdout, "Running select on %s: '%s'\n", DATABASE, select);
 		#endif
@@ -437,7 +438,7 @@ int update(char *command, sqlite3 *database)
 				#endif
 				//	allocating space for id from rownumber
 				UNIQUE_ID = malloc(sizeof(char) * ID_LEN);
-				len = snprintf(select, SELECT_LEN, "select id from %s where date = '%s-%s-%s'", TABLE, YEAR, MONTH, day);
+				len = snprintf(select, SELECT_LEN, "select id from %s where date = '%04s-%02s-%02s'", TABLE, YEAR, MONTH, day);
 				//	prepare statement to find correct row for update
 				sqlite3_stmt **statement = malloc(1* sizeof( sqlite3_stmt *));
 				if (sqlite3_prepare_v2(database, select, len, statement, NULL) != SQLITE_OK) {
@@ -484,10 +485,6 @@ int update(char *command, sqlite3 *database)
 				(*P_COUNTER) = sql_len;
 				len = get_update_command(comment, "comment"); comment[len-1] = '\0';
 				if (len > 1) {	//	comment is to be updated
-					sql_len += snprintf(select+sql_len, SELECT_LEN-sql_len, " comment = '%s'", comment);
-				}
-				len = get_update_command(amount, "amount"); amount[len-1] = '\0';
-				if (len > 1) {	//	amount is to be updated
 					if (sql_len > (*P_COUNTER)) {	//	need to add comma after previous variable
 						*(select+sql_len++) = ',';
 						*(select+sql_len) = 0;
@@ -496,6 +493,10 @@ int update(char *command, sqlite3 *database)
 				}
 				len = get_update_command(type, "type"); type[len-1] = '\0';
 				if (len > 1) {	//	type is to be updated
+					sql_len += snprintf(select+sql_len, SELECT_LEN-sql_len, " comment = '%s'", comment);
+				}
+				len = get_update_command(amount, "amount"); amount[len-1] = '\0';
+				if (len > 1) {	//	amount is to be updated
 					if (sql_len > (*P_COUNTER)) {	//	need to add comma after previous variable
 						*(select+sql_len++) = ',';
 						*(select+sql_len) = '\0';
@@ -532,7 +533,7 @@ int update(char *command, sqlite3 *database)
 						get_update_command(amount, "amount"); amount[ID_LEN-1] = '\0';				//	amount
 						generate_id(UNIQUE_ID);																					//	id
 						//	insert into TABLE values (DATE, COMMENT, TYPE, AMOUNT, ID);
-						snprintf(select, SELECT_LEN, "insert into %s values('%s-%s-%s', '%s', '%s', %s, '%s');",
+						snprintf(select, SELECT_LEN, "insert into %s values('%04s-%02s-%02s', '%s', '%s', %s, '%s');",
 							TABLE, YEAR, MONTH, day, comment, type, amount, UNIQUE_ID);
 						if (sqlite3_exec(database, select, NULL, 0, &zErrMsg) != SQLITE_OK) {
 							fprintf(stderr, "SQL error %s\n", zErrMsg);
