@@ -10,6 +10,7 @@ Current features:
 - quick update/divide command
 - read from DNB and Sparebanken Sør files
 - manual select statements on database
+- predefined stats menu for quick printouts of balances
 - configuration file for easy default setup
 - backup functionality
 

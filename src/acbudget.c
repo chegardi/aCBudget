@@ -96,117 +96,6 @@ void configurate(char *command, sqlite3 *db)
 }
 
 /*
- *	Provides runtime configuration-options
- */
-char *config(char *command, sqlite3 *database)
-{
-	int len;
-	char *token;
-	len = get_command(command, "config"); command[len-1] = '\0';
-	while ((strncmp(command, "e\0", 2) != 0) && (strncmp(command, "end\0", 4) != 0)) {
-		if ((strncmp(command, "sv\0", 3) == 0) || (strncmp(command, "save\0", 5) == 0)) {
-			save_config(command);
-			printf("%s", command);
-		}
-		else if ((strncmp(command, "ld\0", 3) == 0) || (strncmp(command, "load\0", 5) == 0)) {
-			configurate(command, database);
-			printf("%s", command);
-		}
-		else if ((strncmp(command, "sw\0", 3) == 0) || (strncmp(command, "show\0", 5) == 0)) {
-			printf("Database: %s\nTable: %s\nMonth: %s\nYear: %s\nRead: %d\n", DATABASE, TABLE, MONTH, YEAR, (*READ_COUNTER));
-		}
-		else if ((strncmp(command, "yr\0", 2) == 0) ||(strncmp(command, "year\0", 5) == 0)) {
-			printf("Year=%s\n", YEAR);
-		}
-		else if ((strncmp(command, "mn\0", 3) == 0) || (strncmp(command, "month\0", 6) == 0)) {
-			printf("Month=%s\n", MONTH);
-		}
-		else if ((strncmp(command, "tb\0", 3) == 0) || (strncmp(command, "table\0", 6) == 0)) {
-			printf("Table=%s\n", TABLE);
-		}
-		else if ((strncmp(command, "rd\0", 3) == 0) || (strncmp(command, "read\0", 5) == 0)) {
-			printf("Read=%d\n", (*READ_COUNTER));
-		}
-		else if ((strncmp(command, "db\0", 3) == 0) || (strncmp(command, "database\0", 9) == 0)) {
-			printf("Database=%s\n", DATABASE);
-		}
-		else if ((strncmp(command, "bu\0", 3) == 0) || (strncmp(command, "backup\0", 7) == 0)) {
-			if (revert_or_backup(database, 1)) {
-				snprintf(command, COMMAND_LEN, "Failed to backup, exit program and contact developer!\n");
-				return command;
-			}
-		}
-		else if ((strncmp(command, "rv\0", 3) == 0) || (strncmp(command, "revert\0", 7) == 0)) {
-			if (revert_or_backup(database, 0)) {
-				snprintf(command, COMMAND_LEN, "Failed to revert: exit program and contact developer!\n");
-				return command;
-			}
-		}
-		else if ((strncmp(command, "h\0", 2) == 0) || (strncmp(command, "help\0", 5) == 0)) {
-			fprintf(stdout,
-			"Commands withing config:\n%-2s or %8s - %s\n%-2s or %8s - %s\n%-2s or %8s - %s\n%-2s or %8s - %s\n%-2s or %8s - %s\n%-2s or %8s - %s\n%-2s or %8s - %s\n%-2s or %8s - %s\n%-2s or %8s - %s\n%-2s or %8s - %s\n%-2s or %8s - %s\n%14s - %s\n",
-			"h", "help", "Displays this help text",
-			"sv", "save", "Saves the current configuration to file",
-			"ld", "load", "Loads configuration from file",
-			"sw", "show", "Shows the current configuration in program",
-			"db", "database", "Displays current database",
-			"tb", "table", "Displays current table in database",
-			"yr", "year", "Displays default year",
-			"mn", "month", "Displays default month",
-			"rd", "read", "How many lines to skip if continuing reading from file",
-			"bu", "backup", "Backups current database",
-			"rv", "revert", "Reverts the database to backup",
-			"variable=value", "sets variable to new value");
-		}
-		else {
-			len = strlen(command);
-			token = xstrtok(command, "=");
-			if (len != strlen(token))
-			{
-				if (strncmp(token, "year\0", 5) == 0)
-				{
-					token = xstrtok(NULL, "");
-					free(YEAR);
-					YEAR = malloc(sizeof(char)*strlen(token));
-					strcpy(YEAR, token);
-				}
-				else if (strncmp(token, "month\0", 6) == 0)
-				{
-					token = xstrtok(NULL, "");
-					free(MONTH);
-					MONTH = malloc(sizeof(char)*strlen(token));
-					strcpy(MONTH, token);
-				}
-				else if (strncmp(token, "table\0", 6) == 0)
-				{
-					token = xstrtok(NULL, "");
-					free(TABLE);
-					TABLE = malloc(sizeof(char)*strlen(token));
-					strcpy(TABLE, token);
-				}
-				else if (strncmp(token, "database\0", 9) == 0)
-				{
-					token = xstrtok(NULL, "");
-					free(DATABASE);
-					DATABASE = malloc(sizeof(char)*strlen(token));
-					strcpy(DATABASE, token);
-				}
-				else if (strncmp(token, "read\0", 5) == 0) 
-				{
-					token = xstrtok(NULL, "");
-					(*READ_COUNTER) = atoi(token);
-				} else
-					printf("No such configurable variable: %s\n", token);
-			}
-			else
-				printf("No such command: %s\n", command);
-		}
-		len = get_command(command, "config"); command[len-1] = '\0';
-	}
-	return command;
-}
-
-/*
  *	Main method to initialize program
  */
 int main(int argc, char **argv)
@@ -226,7 +115,7 @@ int main(int argc, char **argv)
 		return(1);
 	}
 	//	Startup userprompt for revert_or_backup
-	len = get_command(command, "main"); command[len-1] = '\0';
+	len = get_command(command, "main");
 	//	Loop user for input while user don't want to quit
 	while ((strncmp(command, "q\0", 2) != 0) && (strncmp(command, "quit\0", 5) != 0)) {
 		#if DEBUG
@@ -238,17 +127,17 @@ int main(int argc, char **argv)
 			printf("%s", printout);
 		}
 		//	Fetch a new command
-		len = get_command(command, "main"); command[len-1] = '\0';
+		len = get_command(command, "main");
 	}
 	sqlite3_close(database);
-	if (freeAll()) {	
+	if (free_all()) {	
 		#if DEBUG
-		fprintf(stderr, "freeAll() did not return correctly\n.");
+		fprintf(stderr, "free_all() did not return correctly\n.");
 		#endif
 		return -1;
 	}
 	#if DEBUG
-	fprintf(stderr, "freeAll() returned correctly\n.");
+	fprintf(stderr, "free_all() returned correctly\n.");
 	#endif
 	return 0;
 }

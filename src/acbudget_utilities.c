@@ -7,7 +7,7 @@
  *	 "." from original and replace "," with "." in
  *	code.
  */
-void copynumber(int error, char* to, char* from)
+void copy_number(int error, char* to, char* from)
 {
 	int i = 0;
 	while (from[i] != '\0') {
@@ -29,7 +29,7 @@ void copynumber(int error, char* to, char* from)
  *	Date are reversed and wrong in files from DNB
  *	This method stores date correctly in *date pointer
  */
-char* copydate(char *date, char *token)
+char* copy_date(char *date, char *token)
 {
 	#if DEBUG
         fprintf(stderr, "token.date=%s\n", token);
@@ -52,7 +52,7 @@ char* copydate(char *date, char *token)
 /*
  *	Frees all allocated pre-defined pointers if needed.
  */
-int freeAll()
+int free_all()
 {
 	#if DEBUG
 	fprintf(stderr, "Trying to free...\n");
@@ -123,6 +123,18 @@ void generate_id(char *id)
 	for (i=0;i<ID_LEN-1; i++)
 		id[i] = letters[rand()%strlen(letters)];
 	id[ID_LEN-1] = '\0';
+}
+
+int print_stats_help()
+{
+	int cnt_commands = 0;
+	printf("---Printable statistics---\n");
+	printf("%-2d: Number of types within year %4s with corresponding sums\n", ++cnt_commands, YEAR);
+	printf("%-2d: Number of types within a month(prompted) corresponding sums\n", ++cnt_commands);
+	printf("%-2d: All transactions within a month (prompted)\n", ++cnt_commands);
+	printf("%-2c: Prints this screen\n", 'h');
+	printf("%-2c: exit\n", 'e');
+	return cnt_commands;
 }
 
 /*

@@ -1,5 +1,117 @@
 #include "acbudget.h"
 
+
+/*
+ *	Provides runtime configuration-options
+ */
+char *config_command(char *command, sqlite3 *database)
+{
+	int len;
+	char *token;
+	len = get_command(command, "config");
+	while ((strncmp(command, "e\0", 2) != 0) && (strncmp(command, "end\0", 4) != 0)) {
+		if ((strncmp(command, "sv\0", 3) == 0) || (strncmp(command, "save\0", 5) == 0)) {
+			save_config(command);
+			printf("%s", command);
+		}
+		else if ((strncmp(command, "ld\0", 3) == 0) || (strncmp(command, "load\0", 5) == 0)) {
+			configurate(command, database);
+			printf("%s", command);
+		}
+		else if ((strncmp(command, "sw\0", 3) == 0) || (strncmp(command, "show\0", 5) == 0)) {
+			printf("Database: %s\nTable: %s\nMonth: %s\nYear: %s\nRead: %d\n", DATABASE, TABLE, MONTH, YEAR, (*READ_COUNTER));
+		}
+		else if ((strncmp(command, "yr\0", 2) == 0) ||(strncmp(command, "year\0", 5) == 0)) {
+			printf("Year=%s\n", YEAR);
+		}
+		else if ((strncmp(command, "mn\0", 3) == 0) || (strncmp(command, "month\0", 6) == 0)) {
+			printf("Month=%s\n", MONTH);
+		}
+		else if ((strncmp(command, "tb\0", 3) == 0) || (strncmp(command, "table\0", 6) == 0)) {
+			printf("Table=%s\n", TABLE);
+		}
+		else if ((strncmp(command, "rd\0", 3) == 0) || (strncmp(command, "read\0", 5) == 0)) {
+			printf("Read=%d\n", (*READ_COUNTER));
+		}
+		else if ((strncmp(command, "db\0", 3) == 0) || (strncmp(command, "database\0", 9) == 0)) {
+			printf("Database=%s\n", DATABASE);
+		}
+		else if ((strncmp(command, "bu\0", 3) == 0) || (strncmp(command, "backup\0", 7) == 0)) {
+			if (revert_or_backup(database, 1)) {
+				snprintf(command, COMMAND_LEN, "Failed to backup, exit program and contact developer!\n");
+				return command;
+			}
+		}
+		else if ((strncmp(command, "rv\0", 3) == 0) || (strncmp(command, "revert\0", 7) == 0)) {
+			if (revert_or_backup(database, 0)) {
+				snprintf(command, COMMAND_LEN, "Failed to revert: exit program and contact developer!\n");
+				return command;
+			}
+		}
+		else if ((strncmp(command, "h\0", 2) == 0) || (strncmp(command, "help\0", 5) == 0)) {
+			fprintf(stdout,
+			"Commands withing config:\n%-2s or %8s - %s\n%-2s or %8s - %s\n%-2s or %8s - %s\n%-2s or %8s - %s\n%-2s or %8s - %s\n%-2s or %8s - %s\n%-2s or %8s - %s\n%-2s or %8s - %s\n%-2s or %8s - %s\n%-2s or %8s - %s\n%-2s or %8s - %s\n%14s - %s\n",
+			"h", "help", "Displays this help text",
+			"sv", "save", "Saves the current configuration to file",
+			"ld", "load", "Loads configuration from file",
+			"sw", "show", "Shows the current configuration in program",
+			"db", "database", "Displays current database(v)",
+			"tb", "table", "Displays current table(v) in database",
+			"yr", "year", "Displays default year(v)",
+			"mn", "month", "Displays default month(v)",
+			"rd", "read", "How many lines to skip if continuing reading from file",
+			"bu", "backup", "Backups current database",
+			"rv", "revert", "Reverts the database to backup",
+			"variable=value", "sets variable(v) to new value");
+		}
+		else {
+			len = strlen(command);
+			token = xstrtok(command, "=");
+			if (len != strlen(token))
+			{
+				if (strncmp(token, "year\0", 5) == 0)
+				{
+					token = xstrtok(NULL, "");
+					free(YEAR);
+					YEAR = malloc(sizeof(char)*strlen(token));
+					strcpy(YEAR, token);
+				}
+				else if (strncmp(token, "month\0", 6) == 0)
+				{
+					token = xstrtok(NULL, "");
+					free(MONTH);
+					MONTH = malloc(sizeof(char)*strlen(token));
+					strcpy(MONTH, token);
+				}
+				else if (strncmp(token, "table\0", 6) == 0)
+				{
+					token = xstrtok(NULL, "");
+					free(TABLE);
+					TABLE = malloc(sizeof(char)*strlen(token));
+					strcpy(TABLE, token);
+				}
+				else if (strncmp(token, "database\0", 9) == 0)
+				{
+					token = xstrtok(NULL, "");
+					free(DATABASE);
+					DATABASE = malloc(sizeof(char)*strlen(token));
+					strcpy(DATABASE, token);
+				}
+				else if (strncmp(token, "read\0", 5) == 0) 
+				{
+					token = xstrtok(NULL, "");
+					(*READ_COUNTER) = atoi(token);
+				} else
+					printf("No such configurable variable: %s\n", token);
+			}
+			else
+				printf("No such command: %s\n", command);
+		}
+		len = get_command(command, "config");
+	}
+	return command;
+}
+
 /*
  *	Executes or give feedback to user about given command
  */
@@ -10,13 +122,15 @@ char *execute_command(char *command, sqlite3 *database)
 	} else if (strncmp(command, "select\0", 6) == 0) {
 		return myselect(command, database);
 	} else if (strncmp(command, "read\0", 5) == 0) {
-		snprintf(command, COMMAND_LEN, "%d insertions made.\n", readfile(command, database));
+		snprintf(command, COMMAND_LEN, "%d insertions made.\n", read_file(command, database));
 	} else if (strncmp(command, "update\0",  7) == 0) {
 		snprintf(command, COMMAND_LEN, "%d entries updated.\n", update(command, database));
+	} else if (strncmp(command, "stats\0", 6) == 0) {
+		snprintf(command, COMMAND_LEN, "%d stats printed.\n", print_stats(command, database));
 	} else if (strncmp(command, "config\0", 7) == 0) {
-		return config(command, database);
+		return config_command(command, database);
 	} else if ((strncmp(command, "help\0", 5) == 0) || (strncmp(command, "h\0", 2) == 0)) {
-		printhelp(command);
+		print_help(command);
 	} else {
 		printf("aCBudget.%s > no such command\n", command);
 		(*command) = '\0';
@@ -31,7 +145,9 @@ int get_command(char *command, char *command_text)
 {
 	fflush(stdin);
 	printf("aCBudget.%s > ", command_text);
-	return strlen(fgets(command, COMMAND_LEN, stdin));
+	int command_len = strlen(fgets(command, COMMAND_LEN, stdin));
+	command[command_len-1] = '\0';
+	return command_len;
 }
 
 /*
@@ -45,15 +161,105 @@ int get_update_command(char *command, char *command_text)
 }
 
 /*
+ *	Select command
+ *	Executes commands from user as long as e/end is not typed
+ */
+char *myselect(char *command, sqlite3 *database)
+{
+	int len, counter = 0;
+	char *select = malloc(sizeof(char) * SELECT_LEN), *zErrMsg, execute;
+	if (select == NULL) {
+		snprintf(command, COMMAND_LEN, "Error allocating memory for operation");
+	}
+	else {
+		printf("===WARNING===\nAny statements written WILL be executed! Be careful NOT to execute unintended statements on database.\n===WARNING===\n");
+		len = get_command(select, "select");
+		while ((strncmp(select, "e\0", 2) != 0) && (strncmp(select, "end\0", 4) != 0)) {
+			if (strncmp(select, "select ", 7) != 0) {
+				printf("Really execute '%s', ?: ", select);
+				execute = getc(stdin); fflush(stdin);
+			}	else execute = 'y';
+			if (execute == 'y') {
+				if ( sqlite3_exec(database, select, callback, 0, &zErrMsg) != SQLITE_OK) {
+					fprintf(stderr, "SQL error: %s\n", zErrMsg);
+					sqlite3_free(zErrMsg);
+				} else {
+					counter++;
+				}
+			}
+			len = get_command(select, "select");
+		}
+		snprintf(command, COMMAND_LEN, "%d commands excuted\n", counter);
+		free(select);
+	}
+	return command;
+}
+
+/*
+ *
+ */
+int print_stats(char *command, sqlite3 *database)
+{
+	int	stats_cnt = 0,
+			len = -1,
+			execution = -1,
+			max_commands = print_stats_help();
+	char	*select = malloc(sizeof(char)*SELECT_LEN),
+			*zErrMsg;
+	do {
+		/*	prompt user for command	*/
+		len = get_command(command, "stats");
+		/*	print stat selected or exit	*/
+		execution = atoi(command);
+		if (strncmp(command, "h\0", 2) == 0)	print_stats_help();
+		else if (strncmp(command, "e\0", 2) == 0)	break;
+		else if (execution > 0 && execution <= max_commands) {
+			if (execution == 1) {
+				snprintf(select, SELECT_LEN, "select type, sum(amount) as Forbruk from %s group by type order by type", TABLE);
+				if ( sqlite3_exec(database, select, callback, 0, &zErrMsg) != SQLITE_OK) {
+					fprintf(stderr, "SQL error: %s\n", zErrMsg);
+					sqlite3_free(zErrMsg);
+				}
+			}
+			else if (execution == 2) {
+				printf("Select month 1-12: ");
+				len = strlen(fgets(command, 3, stdin)); command[len-1] = '\0';
+				int month = atoi(command);
+				snprintf(select, SELECT_LEN, "select type, sum(amount) as Forbruk from %s where date < '%4s-%02d-32' and date >= '%4s-%02d-00' group by type order by type", TABLE, YEAR, month, YEAR, month);
+				if ( sqlite3_exec(database, select, callback, 0, &zErrMsg) != SQLITE_OK) {
+					fprintf(stderr, "SQL error: %s\n", zErrMsg);
+					sqlite3_free(zErrMsg);
+				}
+			}
+			else if (execution == 3) {
+				printf("Select month 1-12: ");
+				len = strlen(fgets(command, 3, stdin)); command[len-1] = '\0';
+				int month = atoi(command);
+				snprintf(select, SELECT_LEN, "select * from %s where date < '%4s-%02d-32' and date >= '%4s-%02d-00' order by date", TABLE, YEAR, month, YEAR, month);
+				if ( sqlite3_exec(database, select, callback, 0, &zErrMsg) != SQLITE_OK) {
+					fprintf(stderr, "SQL error: %s\n", zErrMsg);
+					sqlite3_free(zErrMsg);
+				}
+			}
+			stats_cnt ++;
+		}
+		else	printf("No statistics on '%s'\n", command);
+	}	while (strncmp(command, "e\0", 2) != 0);
+	free(select);
+	return stats_cnt;
+}
+
+/*
  *	Method to print help about core commands
  */
-void printhelp(char *command)
+void print_help(char *command)
 {
 	printf("aCBudget.help >\n");
-	printf("%-6s - %s\n", "read", "read insertions from file");
 	printf("%-6s - %s\n", "select", "write commands directly to database");
 	printf("%-6s - %s\n", "insert", "for easy insertions to database");
+	printf("%-6s - %s\n", "read", "read insertions from file");
 	printf("%-6s - %s\n", "update", "for easy update (and dividing) of existing entries");
+	printf("%-6s - %s\n", "stats", "provides a menu to print out some predefined stats");
 	printf("%-6s - %s\n", "config", "a menu to configurate database variables");
 	printf("%-6s - %s\n", "help", "this menu");
 	(*command) = '\0';	//	reset command pointer
@@ -66,14 +272,14 @@ void printhelp(char *command)
  *	for files downloaded from DNB Norway(1) and
  *	Sparebanken Sør(2)
  */
-int readfile(char *command, sqlite3 *database)
+int read_file(char *command, sqlite3 *database)
 {
 	int len, counter = 0;
 	FILE *fp;
 	char filename[50], type;
 	filename[0] = '\0';
 	while (1) {
-		len = get_command(filename, "filename"); filename[len-1] = '\0';
+		len = get_command(filename, "filename");
 		if ((strncmp(filename, "e\0", 2) == 0) || (strncmp(filename, "end\0", 4) == 0))
 			break;
 		fp = fopen(filename, "r");
@@ -86,20 +292,20 @@ int readfile(char *command, sqlite3 *database)
 		fflush(stdin);
 		if (type=='1') {
 			(*READ_COUNTER) = 0;
-			counter += readDNB(fp, database);
+			counter += read_DNB(fp, database);
 		}
 		else if (type=='2') {
 			(*READ_COUNTER) = 0;
-			counter += readSBS(fp, database);
+			counter += read_SBS(fp, database);
 		}
 		else if (type=='3') {
 			printf("Last DNB (1) or Sparebanken Sør (2) file ? ");
 			type = fgetc(stdin);
 			fflush(stdin);
 			if (type=='1')
-				counter += readDNB(fp, database);
+				counter += read_DNB(fp, database);
 			else if (type=='2')
-				counter += readSBS(fp, database);
+				counter += read_SBS(fp, database);
 			else
 				printf("%c was not a valid file option.\n", type);
 		}
@@ -115,7 +321,7 @@ int readfile(char *command, sqlite3 *database)
  *	Reads file from start or until user ends at given checkpoints.
  *	
  */
-int readDNB(FILE *fp, sqlite3 *database)
+int read_DNB(FILE *fp, sqlite3 *database)
 {
 	#if DEBUG
 	fprintf(stderr, "read DNB\n");
@@ -156,7 +362,7 @@ int readDNB(FILE *fp, sqlite3 *database)
 		#if DEBUG
 		fprintf(stderr, "date: %s\n", token);
 		#endif
-		copydate(date, token);
+		copy_date(date, token);
 		/*
 		 *	Copies "Forklaring" into comment,
 		 *	for further analysis by user
@@ -181,9 +387,9 @@ int readDNB(FILE *fp, sqlite3 *database)
 		#endif
 		if (error > 3) {	//	Amount is deposited, decreasing money spent
 			amount[0] = '-';
-			copynumber(1, amount, token);
+			copy_number(1, amount, token);
 		} else	//	Amount is withdrawn, increasing money spent
-			copynumber(0, amount,token);
+			copy_number(0, amount,token);
 		/*
 		 *	Prints out rows with equal date and/or amount
 		 *	To check for double-entries.
@@ -256,7 +462,7 @@ int readDNB(FILE *fp, sqlite3 *database)
  *	Almost same functionality as DNB method, with 
  *	some tweaks to read correctly from a different filetype (.csv)
  */
-int readSBS(FILE *fp, sqlite3 *database)
+int read_SBS(FILE *fp, sqlite3 *database)
 {
 	#if DEBUG
 	fprintf(stderr, "read SBS\n");
@@ -317,8 +523,8 @@ int readSBS(FILE *fp, sqlite3 *database)
 			//	No date was found in explanation, prompts user for input
 			datetoken = malloc(sizeof(char)*DATE_LEN);
 			strncpy(datetoken, date, DATE_LEN);
-			copydate(date, datetoken);
-			/*printf("Date: %s | Comment: %s \nNew date YYYY-MM-DD: ", copydate(date, datetoken), token);
+			copy_date(date, datetoken);
+			/*printf("Date: %s | Comment: %s \nNew date YYYY-MM-DD: ", copy_date(date, datetoken), token);
 			fgets(date, 11, stdin);
 			fflush(stdin);*/
 		}
@@ -326,12 +532,12 @@ int readSBS(FILE *fp, sqlite3 *database)
 		token = xstrtok(NULL, "	");
 		if (strlen(token) > 1) {
 			//	Number was a withdrewal, increasing budget spent
-			copynumber(0, amount, token);
+			copy_number(0, amount, token);
 		} else {
 			//	Number was a deposit, decreasing budget spent
 			token = xstrtok(NULL, "	");
 			amount[0] = '-';
-			copynumber(1, amount, token);
+			copy_number(1, amount, token);
 		}
 		#if DEBUG
 		fprintf(stderr, "amount: %s\n", token);
@@ -407,10 +613,10 @@ int update(char *command, sqlite3 *database)
 	do {
 		snprintf(commandhelp, COMMAND_LEN, "day in month (%s)", MONTH);
 		len = get_update_command(command, commandhelp); command[len-1] = '\0';
-		if ((strncmp(command, "e\0", 2) != 0) || (strncmp(command, "end\0", 4) != 0))	break;
+		if ((strncmp(command, "e\0", 2) == 0) || (strncmp(command, "end\0", 4) == 0))	break;
 		(*P_COUNTER) = 1;
 		//	find entries based on day of month
-		snprintf(select, SELECT_LEN, "select comment, amount, type from %s where date = '%04s-%02s-%02s'", TABLE, YEAR, MONTH, command);
+		snprintf(select, SELECT_LEN, "select comment, amount, type from %s where date = '%04s-%02s-%02d'", TABLE, YEAR, MONTH, atoi(command));
 		#if DEBUG
 		fprintf(stdout, "Running select on %s: '%s'\n", DATABASE, select);
 		#endif
@@ -422,7 +628,7 @@ int update(char *command, sqlite3 *database)
 		if (*P_COUNTER > 1) {
 			//	give user ability to divide/update entries
 			day = malloc(sizeof(char) * 3); 
-			snprintf(day, 3, "%s", command);
+			snprintf(day, 3, "%02d", atoi(command));
 			len = get_update_command(command, "number to update"); command[len-1] = '\0';
 			#if DEBUG
 			fprintf(stderr, "day: '%s', command: '%s'\n", day, command);
@@ -460,13 +666,16 @@ int update(char *command, sqlite3 *database)
 					}
 					else {	//	unexpected behaviour
 						if (sql_result == SQLITE_DONE) {
-							printf("\nNumber chosen must have been higher than number of rows returned.\n");
+							printf("\nNumber chosen was higher than number of rows returned.\n");
+							break;
 						}
 						else if (sql_result == SQLITE_MISUSE) {
 							fprintf(stderr, "\nSQL misuse: Contact system creator", zErrMsg);
+							break;
 						}
 						else if (sql_result == SQLITE_ERROR) {
 							fprintf(stderr, "\nSQL step-error: Contact system creator");
+							break;
 						}
 						continue;
 					}
@@ -485,15 +694,15 @@ int update(char *command, sqlite3 *database)
 				(*P_COUNTER) = sql_len;
 				len = get_update_command(comment, "comment"); comment[len-1] = '\0';
 				if (len > 1) {	//	comment is to be updated
-					if (sql_len > (*P_COUNTER)) {	//	need to add comma after previous variable
-						*(select+sql_len++) = ',';
-						*(select+sql_len) = 0;
-					}
-					sql_len += snprintf(select+sql_len, SELECT_LEN-sql_len, " amount = %s", amount);
+					sql_len += snprintf(select+sql_len, SELECT_LEN-sql_len, " comment = '%s'", comment);
 				}
 				len = get_update_command(type, "type"); type[len-1] = '\0';
 				if (len > 1) {	//	type is to be updated
-					sql_len += snprintf(select+sql_len, SELECT_LEN-sql_len, " comment = '%s'", comment);
+					if (sql_len > (*P_COUNTER)) {	//	need to add comma after previous variable
+						*(select+sql_len++) = ',';
+						*(select+sql_len) = '\0';
+					}
+					sql_len += snprintf(select+sql_len, SELECT_LEN-sql_len, " type = '%s'", type);
 				}
 				len = get_update_command(amount, "amount"); amount[len-1] = '\0';
 				if (len > 1) {	//	amount is to be updated
@@ -501,7 +710,7 @@ int update(char *command, sqlite3 *database)
 						*(select+sql_len++) = ',';
 						*(select+sql_len) = '\0';
 					}
-					sql_len += snprintf(select+sql_len, SELECT_LEN-sql_len, " type = '%s'", type);
+					sql_len += snprintf(select+sql_len, SELECT_LEN-sql_len, " amount = %s", amount);
 					#if DEBUG
 					fprintf(stderr,"select: %s\n", select);
 					#endif

@@ -1,5 +1,11 @@
 Changelog
 
+MONDAY JULY 6th 2015
+*	Added a new command "stats", for quick easy print of stats. Currently contains 2 predefined commands; (1) A print of all types and their balance. (2) Same as (1) but restricted to a prompted month. (3) Prints all transactions registered in a prompted month.
+*	More work on maintainability by rewriting code to be within the CCodingStandard referenced to earlier.
+*	Moved some functions to other files, as I found their previous position to not be as convenient as before.
+*	Tweaked "update" command to be able to receive single digit day numbers, and still carry out correct SQL statements.
+
 THURSDAY JULY 2nd 2015
 *	Added a nearly empty database 'database.db' with only one test-row, for easier quick access for users.
 *	Also added the SQLite source file I use 'sql/*' - remember to check out their site, and spread the word of their awesome work!

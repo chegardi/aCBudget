@@ -1,9 +1,11 @@
 More detailed information about the program, Sections*
+*	How to compile
 *	.main commands
 *		select
 *		insert
 			help
 *		update
+*		stats
 *		config
 			load
 			show
@@ -18,7 +20,33 @@ More detailed information about the program, Sections*
 *		help
 *	SQL database setup
 
-There are pr. May 27th a total of six (6) commands you can call at '$	./aCBudget.main >':
+*	How to compile
+
+Regular compilation:
+$	gcc src/*.c sql/*.c -c &&
+	gcc *.o -o aCBudget
+
+Afterwards you can safely delete the '*.o' files, by running the appropriate command on your computer (ie. windows _del_).
+I keep mine in a subdirectory 'o/', and thus run this command (after directory has been created);
+
+Folder compilation
+$	gcc src/*.c sql/*.c -c &&
+	move *.o o/ &&
+	gcc o/*.o -o aCBudget
+
+If you have kept your '*.o' files, and have pulled a newer version of aCBudget, it would be smart not to recompile and assemble sql. Therefore I only delete the aCBudget compiled files 'a*.o' before recompiling by using this command;
+
+Update compilation
+$	cd o/ &&
+	del a*.o &&
+	cd ../ &&
+	gcc src/*.c sql/*.c -c &&
+	move *.o o/ && gcc o/*.o -o aCBudget 
+
+If there are any questions, as always do not hesitate to contact me :) I would very much like to hear your feedback/problems and help you with them!
+
+
+Pr. July 6th there are a total of six (7) commands you can call at '$	./aCBudget.main >':
 
 *
 $	aCBudget.select >
@@ -40,7 +68,11 @@ There must be some time inbetween each insertion. As all insertions are inserted
 
 *
 $	aCBudget.update >
-Here you can update a row with either combination of new comment, type and/or amount. Immediately after it is possible to add another row with same date, but new comment, type and amount. You are only able to type the day within 'update' command. If a switch in month, look at 'config' section.
+Here you can update a row with either combination of new comment, type and/or amount. Immediately after it is possible to add another row with same date, but new comment, type and amount. You are only able to type the day within 'update' command. If a switch in month is required, look at 'config' section.
+
+*
+$	aCBudget.stats >
+Prints out a numbered menu for some quick stats. Only predefined commands here, with prompts where needed (for months and/or days etc.).
 
 *
 $	aCBudget.config >

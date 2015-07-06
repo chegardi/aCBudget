@@ -34,6 +34,5 @@ int 	*P_COUNTER,
 
 //	main functions
 void configurate(char *command, sqlite3 *db);
-char *config(char *command, sqlite3 *database);
 int main(int argc, char **argv);
 void save_config(char *command);
