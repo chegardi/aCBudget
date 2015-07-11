@@ -220,6 +220,11 @@ int print_stats(char *command, sqlite3 *database)
 					fprintf(stderr, "SQL error: %s\n", zErrMsg);
 					sqlite3_free(zErrMsg);
 				}
+				snprintf(select, SELECT_LEN, "select sum(amount) as Totalt from %s", TABLE);
+				if ( sqlite3_exec(database, select, callback, 0, &zErrMsg) != SQLITE_OK) {
+					fprintf(stderr, "SQL error: %s\n", zErrMsg);
+					sqlite3_free(zErrMsg);
+				}
 			}
 			else if (execution == 2) {
 				printf("Select month 1-12: ");
@@ -230,12 +235,22 @@ int print_stats(char *command, sqlite3 *database)
 					fprintf(stderr, "SQL error: %s\n", zErrMsg);
 					sqlite3_free(zErrMsg);
 				}
+				snprintf(select, SELECT_LEN, "select sum(amount) as Totalt from %s where date < '%4s-%02d-32' and date >= '%4s-%02d-00'", TABLE, YEAR, month, YEAR, month);
+				if ( sqlite3_exec(database, select, callback, 0, &zErrMsg) != SQLITE_OK) {
+					fprintf(stderr, "SQL error: %s\n", zErrMsg);
+					sqlite3_free(zErrMsg);
+				}
 			}
 			else if (execution == 3) {
 				printf("Select month 1-12: ");
 				len = strlen(fgets(command, 3, stdin)); command[len-1] = '\0';
 				int month = atoi(command);
 				snprintf(select, SELECT_LEN, "select * from %s where date < '%4s-%02d-32' and date >= '%4s-%02d-00' order by date", TABLE, YEAR, month, YEAR, month);
+				if ( sqlite3_exec(database, select, callback, 0, &zErrMsg) != SQLITE_OK) {
+					fprintf(stderr, "SQL error: %s\n", zErrMsg);
+					sqlite3_free(zErrMsg);
+				}
+				snprintf(select, SELECT_LEN, "select sum(amount) as Totalt from %s where date < '%4s-%02d-32' and date >= '%4s-%02d-00'", TABLE, YEAR, month, YEAR, month);
 				if ( sqlite3_exec(database, select, callback, 0, &zErrMsg) != SQLITE_OK) {
 					fprintf(stderr, "SQL error: %s\n", zErrMsg);
 					sqlite3_free(zErrMsg);
