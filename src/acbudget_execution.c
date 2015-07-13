@@ -93,24 +93,22 @@ char *config_command(char *command, sqlite3 *database)
 				else if (strncmp(variable, "database\0", 9) == 0)
 				{
 					value = xstrtok(NULL, "");
-					sqlite3 *new_db;
-					#ifdef DEBUG
-					fprintf(stderr, "%s: 0x%x // 0x%x || %s\n", "old", &database, &new_db, DATABASE);
-					#endif
-					if (sqlite3_open(value, &new_db) != SQLITE_OK) {
-						fprintf(stderr, "Failed to open database (%s). SQLError-message: %s\nProgram shutdown to prevent damage to files.", DATABASE, sqlite3_errmsg(database));
+					sqlite3_close(database);
+					if (sqlite3_open(value, &database) != SQLITE_OK) {	//	database could not be opened
+						fprintf(stderr, "Failed to open database (%s). SQLError-message: %s\nTrying to open old database...", value, sqlite3_errmsg(database));
+						if (sqlite3_open(DATABASE, &database) != SQLITE_OK) {		//	old database could not be opened
+							fprintf(stderr, "Failed to open old database (%s). SQLError-message: %s\nProgram shutdown to prevent damage to files.", DATABASE, sqlite3_errmsg(database));
+							exit(EXIT_FAILURE);
+						}
 					}
-					else {
-						sqlite3_close(database);
-						(*database) = (sqlite3 *) new_db;
-						free(DATABASE);
+					else {	//	database opened successfully
 						len = strlen(value)+1;
-						DATABASE = malloc(sizeof(char)*len);
+						if (strlen(DATABASE) != strlen(value)) {	//	unequal lengths, new mallocation neccesary
+							free(DATABASE);
+							DATABASE = malloc(sizeof(char)*len);
+						}
 						strncpy(DATABASE, value, len);
 					}
-					#ifdef DEBUG
-					fprintf(stderr, "%s: 0x%x || %s\n", "new", &database, DATABASE);
-					#endif
 				}
 				else if (strncmp(variable, "read\0", 5) == 0) 
 				{
@@ -368,8 +366,12 @@ int read_DNB(FILE *fp, sqlite3 *database)
 	fprintf(stderr, "read DNB\n");
 	#endif
 	int counter = 0, error, lines = 0;
-	char correct, input[INPUT_LEN], date[DATE_LEN], comment[COMMENT_LEN], type[TYPE_LEN], amount[AMOUNT_LEN], insert_into[INSERT_LEN], *token, *zErrMsg = 0;
-	date[0] = '\0'; comment[0] = '\0'; type[0] = '\0';
+	char correct,
+			input[INPUT_LEN],				//	input lines
+			insert_into[INSERT_LEN],	//	insert into statement
+			*token,									//	tokens from input
+			*zErrMsg;							//	used in errors from SQLite
+	INSERT	insert;							//	struct with all variables of an insert as members
 	while (fgets(input, INPUT_LEN, fp) != NULL) {
 		lines++;
 		if (strlen(input) <= 1)	continue;	//	empty line
@@ -403,7 +405,7 @@ int read_DNB(FILE *fp, sqlite3 *database)
 		#if DEBUG
 		fprintf(stderr, "date: %s\n", token);
 		#endif
-		copy_date(date, token);
+		copy_date(insert.date, token);
 		/*
 		 *	Copies "Forklaring" into comment,
 		 *	for further analysis by user
@@ -412,7 +414,7 @@ int read_DNB(FILE *fp, sqlite3 *database)
 		#if DEBUG
 		fprintf(stderr, "comment: %s\n", token);
 		#endif
-		strncpy(comment, token, 35);
+		strncpy(insert.comment, token, COMMENT_LEN);
 		/*
 		 *	Unimportant for my personal budget,
 		 *	Date for interest rate
@@ -427,18 +429,18 @@ int read_DNB(FILE *fp, sqlite3 *database)
 		fprintf(stderr, "amount: %s\n", token);
 		#endif
 		if (error > 3) {	//	Amount is deposited, decreasing money spent
-			amount[0] = '-';
-			copy_number(1, amount, token);
+			insert.amount[0] = '-';
+			copy_number(1, insert.amount, token);
 		} else	//	Amount is withdrawn, increasing money spent
-			copy_number(0, amount,token);
+			copy_number(0, insert.amount,token);
 		/*
 		 *	Prints out rows with equal date and/or amount
 		 *	To check for double-entries.
 		 *	Will remove equal amount check when I've
 		 *	finnished adding my personal information for year 2014
 		 */
-		printf("@Rows with equal date and/or amount:\n");
-		snprintf(insert_into, INSERT_LEN, "select * from %s where date like '%s';", TABLE, date);
+		printf("---Rows on same date:\n");
+		snprintf(insert_into, INSERT_LEN, "select * from %s where date like '%s';", TABLE, insert.date);
 		//	Execute sql select statement
 		if ( sqlite3_exec(database, insert_into, callback, 0, &zErrMsg) != SQLITE_OK) {
 			fprintf(stderr, "SQL error: %s\n", zErrMsg);
@@ -457,7 +459,7 @@ int read_DNB(FILE *fp, sqlite3 *database)
 		 *	I recommend to delete lines added manually until I implement
 		 *	automatic deletion from file after insertion
 		 */
-		printf("-'%s', '%s', %s\nAdd? (y/n/q): ", date, comment, amount);
+		printf("---\n-'%s', '%s', %s\nAdd? (y/n/q): ", insert.date, insert.comment, insert.amount);
 		correct = fgetc(stdin);
 		if (correct == 'q') {
 			lines--;
@@ -467,17 +469,16 @@ int read_DNB(FILE *fp, sqlite3 *database)
 			fflush(stdin);
 			// Add comment
 			printf("Comment: ");
-			fgets(comment,36,stdin);
-			comment[strlen(comment)-1] = '\0';
+			fgets(insert.comment, COMMENT_LEN, stdin);
+			insert.comment[strlen(insert.comment)-1] = '\0';
 			//	Generate unique ID for insertion
 			//	Prompts user for type of budget-line
 			printf("Type: ");
-			fgets(type, 16, stdin);
-			type[strlen(type)-1] = '\0'; // end type with \0 instead of \n
-			char id[ID_LEN];
-			generate_id(id);
+			fgets(insert.type, 16, stdin);
+			insert.type[strlen(insert.type)-1] = '\0'; // end type with \0 instead of \n
+			generate_id(insert.id);
 			//	Generate SQL statement for insertion based on information given
-			snprintf(insert_into, INSERT_LEN, "insert into %s values('%s', '%s', '%s', %s, '%s');", TABLE, date, comment, type, amount, id);
+			snprintf(insert_into, INSERT_LEN, "insert into %s values('%s', '%s', '%s', %s, '%s');", TABLE, insert.date, insert.comment, insert.type, insert.amount, insert.id);
 			#if DEBUG
 			fprintf(stderr, "%s\n", insert_into);
 			#endif
@@ -509,15 +510,15 @@ int read_SBS(FILE *fp, sqlite3 *database)
 	fprintf(stderr, "read SBS\n");
 	#endif
 	int counter = 0, error, lines = 0;
-	char	input[INPUT_LEN],					//	input
-			insert_into[INSERT_LEN],		//	insert_into TABLE values(
-			date[DATE_LEN],					//	date
-			comment[COMMENT_LEN],	//	comment
-			type[TYPE_LEN],					//	type
-			amount[AMOUNT_LEN],		//	amount
+	char	correct, 
+			input[INPUT_LEN],					//	input
+			insert_into[INSERT_LEN],		//	insert into statemtn
 			dateday[3],								//	dd daydate
 			datemonth[3],							//	mm monthdate
-			correct, *token, *datetoken, *zErrMsg;	//	diverse
+			*token,										//	tokens from input
+			*datetoken,								//	used to temporarily store date elements from token
+			*zErrMsg;								//	used in errors from SQLite
+	INSERT insert;
 	while (fgets(input, INPUT_LEN, fp) != NULL)	{	//	while file has input
 		lines++;
 		if (strlen(input) <= 1)	continue;	//	empty line
@@ -534,7 +535,7 @@ int read_SBS(FILE *fp, sqlite3 *database)
 		fflush(stdin);
 		//	First token is interest date, stored to use if date is not given in comment
 		token = xstrtok(input, "	");
-		strncpy(date, token, 11);
+		strncpy(insert.date, token, DATE_LEN);
 		#if DEBUG
 		fprintf(stderr, "Date: %s\n", token);
 		#endif
@@ -543,7 +544,7 @@ int read_SBS(FILE *fp, sqlite3 *database)
 		#if DEBUG
 		fprintf(stderr, "Comment: %s\n", token);
 		#endif
-		strncpy(comment, token, 36);
+		strncpy(insert.comment, token, COMMENT_LEN);
 		/*
 		 *	Explanation may contain date in beginning
 		 *	which will be date of purchase (my budget date)
@@ -559,32 +560,30 @@ int read_SBS(FILE *fp, sqlite3 *database)
 			/*
 			 *	Replacing old date with correct format, importing YEAR from header
 			 */
-			snprintf(date, 11, "%s-%s-%s", YEAR, datemonth, dateday);
+			snprintf(insert.date, DATE_LEN, "%s-%s-%s", YEAR, datemonth, dateday);
 		} else {
 			//	No date was found in explanation, prompts user for input
 			datetoken = malloc(sizeof(char)*DATE_LEN);
-			strncpy(datetoken, date, DATE_LEN);
-			copy_date(date, datetoken);
-			/*printf("Date: %s | Comment: %s \nNew date YYYY-MM-DD: ", copy_date(date, datetoken), token);
-			fgets(date, 11, stdin);
-			fflush(stdin);*/
+			strncpy(datetoken, insert.date, DATE_LEN);
+			copy_date(insert.date, datetoken);
 		}
 		//	Last token is amount
 		token = xstrtok(NULL, "	");
 		if (strlen(token) > 1) {
 			//	Number was a withdrewal, increasing budget spent
-			copy_number(0, amount, token);
+			copy_number(0, insert.amount, token);
 		} else {
 			//	Number was a deposit, decreasing budget spent
 			token = xstrtok(NULL, "	");
-			amount[0] = '-';
-			copy_number(1, amount, token);
+			insert.amount[0] = '-';
+			copy_number(1, insert.amount, token);
 		}
 		#if DEBUG
 		fprintf(stderr, "amount: %s\n", token);
 		#endif
 		//	All information gathered, check for equal date in database
-		snprintf(insert_into, INSERT_LEN, "select * from %s where date like '%s';", TABLE, date);
+		printf("---Rows on same date:\n");
+		snprintf(insert_into, INSERT_LEN, "select * from %s where date like '%s';", TABLE, insert.date);
 		if ( sqlite3_exec(database, insert_into, callback, 0, &zErrMsg) != SQLITE_OK) {
 			fprintf(stderr, "SQL error: %s\n", zErrMsg);
 			sqlite3_free(zErrMsg);
@@ -593,27 +592,28 @@ int read_SBS(FILE *fp, sqlite3 *database)
 		fprintf(stderr, "%s\n", insert_into);
 		#endif
 		//	Prompts user if information is to be added. 
-		printf("'%s', '%s', %s\nAdd (y/n/q)? ", date, comment, amount);
+		printf("---\n-'%s', '%s', %s\nAdd? (y/n/q): ", insert.date, insert.comment, insert.amount);
 		correct = fgetc(stdin);
 		fflush(stdin);
 		if (correct == 'y') {
 			//	Replace comment
 			printf("New comment: ");
-			fgets(comment, 36, stdin);
-			comment[strlen(comment)-1] = '\0';
+			fgets(insert.comment, COMMENT_LEN, stdin);
+			insert.comment[strlen(insert.comment)-1] = '\0';
 			fflush(stdin);
 			//	Add a type
 			printf("Type: ");
-			fgets(type, 16, stdin);
-			type[strlen(type)-1] = '\0';
+			fgets(insert.type, TYPE_LEN, stdin);
+			insert.type[strlen(insert.type)-1] = '\0';
 			fflush(stdin);
 			//	Generate unique ID
-			char id[ID_LEN];
-			generate_id(id);
+			generate_id(insert.id);
 			//	Store SQL statement for execution
-			snprintf(insert_into, INSERT_LEN, "insert into %s values('%s', '%s', '%s', %s, '%s');", TABLE, date, comment, type, amount, id);
+			snprintf(insert_into, INSERT_LEN, "insert into %s values('%s', '%s', '%s', %s, '%s');", TABLE, insert.date, insert.comment, insert.type, insert.amount, insert.id);
 			//	Execute SQL statement
-			fprintf(stderr, "inserted \"%s\"\n", insert_into);
+			#ifdef DEBUG
+			fprintf(stderr, "inserted '%s'\n", insert_into);
+			#endif
 			if ( sqlite3_exec(database, insert_into, callback, 0, &zErrMsg) != SQLITE_OK ) {
 				fprintf(stderr, "SQL error: %s\n", zErrMsg);
 				sqlite3_free(zErrMsg);
@@ -629,9 +629,6 @@ int read_SBS(FILE *fp, sqlite3 *database)
 			break;
 		}
 	}
-	#if	DEBUG
-	fprintf(stderr, "storing %d into READ_COUNTER (%d)\n", lines, (*READ_COUNTER));
-	#endif
 	(*READ_COUNTER) = lines;
 	return counter;	//	Insertions made
 }

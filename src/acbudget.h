@@ -20,6 +20,16 @@
 #define PRINT_LEN 1024		//	regular length x4
 #define SELECT_LEN 256		//	for use during select-actions on SQL
 #define TYPE_LEN 16			//	max length of type is 15 + \0
+
+//	structs
+typedef struct insert {
+	char	date[DATE_LEN];
+	char	comment[COMMENT_LEN];
+	char	type[TYPE_LEN];
+	char	amount[AMOUNT_LEN];
+	char	id[ID_LEN];
+}	INSERT;
+
 //	database variables
 char	*DATABASE, 
 		*TABLE , 
