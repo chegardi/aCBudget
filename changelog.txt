@@ -1,9 +1,13 @@
 Changelog
 
+MONDAY JULY 13th 2015
+*	Updated the "database=new_database.type" to actually change to the new database, no longer requiring a save to config file and restart of program.
+*	Updated stats to show a balance at the end of the output.
+*	Added a struct INSERT which has a member for each variable 'date', 'comment', 'type', amount, 'id', for easier code maintainability.
+
 SATURDAY JULY 11th 2015
 *	Tweaked the new "stats" command, and added limit to check for correct month range entered.
 *	Fixed a bug in the "config" command when the file 'config.ini' does not exist.
-*	
 
 MONDAY JULY 6th 2015
 *	Added a new command "stats", for quick easy print of stats. Currently contains 3 predefined commands; (1) A print of all types and their balance. (2) Same as (1) but restricted to a prompted month. (3) Prints all transactions registered in a prompted month.
