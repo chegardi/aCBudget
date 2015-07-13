@@ -7,21 +7,21 @@
 char *config_command(char *command, sqlite3 *database)
 {
 	int len;
-	char *token;
+	char *variable, *value;
 	len = get_command(command, "config");
 	while ((strncmp(command, "e\0", 2) != 0) && (strncmp(command, "end\0", 4) != 0)) {
 		if ((strncmp(command, "sv\0", 3) == 0) || (strncmp(command, "save\0", 5) == 0)) {
-			save_config(command);
+			save_config(command, database);
 			printf("%s", command);
 		}
 		else if ((strncmp(command, "ld\0", 3) == 0) || (strncmp(command, "load\0", 5) == 0)) {
-			configurate(command, database);
-			printf("%s", command);
+			if (configurate(command))	printf("Loading configuration from '%s' failed.\n", CONFIG_FILENAME);
+			else	printf("Configuration loaded from '%s'.\n", CONFIG_FILENAME);
 		}
 		else if ((strncmp(command, "sw\0", 3) == 0) || (strncmp(command, "show\0", 5) == 0)) {
 			printf("Database: %s\nTable: %s\nMonth: %s\nYear: %s\nRead: %d\n", DATABASE, TABLE, MONTH, YEAR, (*READ_COUNTER));
 		}
-		else if ((strncmp(command, "yr\0", 2) == 0) ||(strncmp(command, "year\0", 5) == 0)) {
+		else if ((strncmp(command, "yr\0", 3) == 0) ||(strncmp(command, "year\0", 5) == 0)) {
 			printf("Year=%s\n", YEAR);
 		}
 		else if ((strncmp(command, "mn\0", 3) == 0) || (strncmp(command, "month\0", 6) == 0)) {
@@ -66,46 +66,60 @@ char *config_command(char *command, sqlite3 *database)
 		}
 		else {
 			len = strlen(command);
-			token = xstrtok(command, "=");
-			if (len != strlen(token))
+			variable = xstrtok(command, "=");
+			if (len != strlen(variable))
 			{
-				if (strncmp(token, "year\0", 5) == 0)
+				if (strncmp(variable, "year\0", 5) == 0)
 				{
-					token = xstrtok(NULL, "");
+					value = xstrtok(NULL, "");
 					free(YEAR);
-					YEAR = malloc(sizeof(char)*strlen(token));
-					strcpy(YEAR, token);
+					YEAR = malloc(sizeof(char)*strlen(value));
+					strcpy(YEAR, value);
 				}
-				else if (strncmp(token, "month\0", 6) == 0)
+				else if (strncmp(variable, "month\0", 6) == 0)
 				{
-					token = xstrtok(NULL, "");
+					value = xstrtok(NULL, "");
 					free(MONTH);
-					MONTH = malloc(sizeof(char)*strlen(token));
-					strcpy(MONTH, token);
+					MONTH = malloc(sizeof(char)*strlen(value));
+					strcpy(MONTH, value);
 				}
-				else if (strncmp(token, "table\0", 6) == 0)
+				else if (strncmp(variable, "table\0", 6) == 0)
 				{
-					token = xstrtok(NULL, "");
+					value = xstrtok(NULL, "");
 					free(TABLE);
-					TABLE = malloc(sizeof(char)*strlen(token));
-					strcpy(TABLE, token);
+					TABLE = malloc(sizeof(char)*strlen(value));
+					strcpy(TABLE, value);
 				}
-				else if (strncmp(token, "database\0", 9) == 0)
+				else if (strncmp(variable, "database\0", 9) == 0)
 				{
-					token = xstrtok(NULL, "");
-					free(DATABASE);
-					DATABASE = malloc(sizeof(char)*strlen(token));
-					strcpy(DATABASE, token);
+					value = xstrtok(NULL, "");
+					sqlite3 *new_db;
+					#ifdef DEBUG
+					fprintf(stderr, "%s: 0x%x // 0x%x || %s\n", "old", &database, &new_db, DATABASE);
+					#endif
+					if (sqlite3_open(value, &new_db) != SQLITE_OK) {
+						fprintf(stderr, "Failed to open database (%s). SQLError-message: %s\nProgram shutdown to prevent damage to files.", DATABASE, sqlite3_errmsg(database));
+					}
+					else {
+						sqlite3_close(database);
+						(*database) = (sqlite3 *) new_db;
+						free(DATABASE);
+						len = strlen(value)+1;
+						DATABASE = malloc(sizeof(char)*len);
+						strncpy(DATABASE, value, len);
+					}
+					#ifdef DEBUG
+					fprintf(stderr, "%s: 0x%x || %s\n", "new", &database, DATABASE);
+					#endif
 				}
-				else if (strncmp(token, "read\0", 5) == 0) 
+				else if (strncmp(variable, "read\0", 5) == 0) 
 				{
-					token = xstrtok(NULL, "");
-					(*READ_COUNTER) = atoi(token);
-				} else
-					printf("No such configurable variable: %s\n", token);
+					value = xstrtok(NULL, "");
+					(*READ_COUNTER) = atoi(value);
+				}
+				else	printf("No such configurable variable: %s\n", variable);
 			}
-			else
-				printf("No such command: %s\n", command);
+			else	printf("No such command: %s\n", command);
 		}
 		len = get_command(command, "config");
 	}
@@ -180,6 +194,9 @@ char *myselect(char *command, sqlite3 *database)
 				execute = getc(stdin); fflush(stdin);
 			}	else execute = 'y';
 			if (execute == 'y') {
+				#ifdef DEBUG
+				fprintf(stderr, "sql statement: '%s'\n", select);
+				#endif
 				if ( sqlite3_exec(database, select, callback, 0, &zErrMsg) != SQLITE_OK) {
 					fprintf(stderr, "SQL error: %s\n", zErrMsg);
 					sqlite3_free(zErrMsg);
@@ -200,7 +217,7 @@ char *myselect(char *command, sqlite3 *database)
  */
 int print_stats(char *command, sqlite3 *database)
 {
-	int	stats_cnt = 0,
+	int		stats_cnt = 0,
 			len = -1,
 			execution = -1,
 			max_commands = print_stats_help();
@@ -215,12 +232,12 @@ int print_stats(char *command, sqlite3 *database)
 		else if (strncmp(command, "e\0", 2) == 0)	break;
 		else if (execution > 0 && execution <= max_commands) {
 			if (execution == 1) {
-				snprintf(select, SELECT_LEN, "select type, sum(amount) as Forbruk from %s group by type order by type", TABLE);
+				snprintf(select, SELECT_LEN, "select type, sum(amount) as Balance from %s group by type order by type", TABLE);
 				if ( sqlite3_exec(database, select, callback, 0, &zErrMsg) != SQLITE_OK) {
-					fprintf(stderr, "SQL error: %s\n", zErrMsg);
+					fprintf(stderr, "SQL error %d - %s\n", sqlite3_errcode(database), sqlite3_errmsg(database));
 					sqlite3_free(zErrMsg);
 				}
-				snprintf(select, SELECT_LEN, "select sum(amount) as Totalt from %s", TABLE);
+				snprintf(select, SELECT_LEN, "select sum(amount) as Total from %s", TABLE);
 				if ( sqlite3_exec(database, select, callback, 0, &zErrMsg) != SQLITE_OK) {
 					fprintf(stderr, "SQL error: %s\n", zErrMsg);
 					sqlite3_free(zErrMsg);
@@ -228,33 +245,42 @@ int print_stats(char *command, sqlite3 *database)
 			}
 			else if (execution == 2) {
 				printf("Select month 1-12: ");
-				len = strlen(fgets(command, 3, stdin)); command[len-1] = '\0';
+				len = strlen(fgets(command, COMMAND_LEN, stdin)); command[len-1] = '\0';
 				int month = atoi(command);
-				snprintf(select, SELECT_LEN, "select type, sum(amount) as Forbruk from %s where date < '%4s-%02d-32' and date >= '%4s-%02d-00' group by type order by type", TABLE, YEAR, month, YEAR, month);
-				if ( sqlite3_exec(database, select, callback, 0, &zErrMsg) != SQLITE_OK) {
-					fprintf(stderr, "SQL error: %s\n", zErrMsg);
-					sqlite3_free(zErrMsg);
+				if (0 < month && month <= 12) {
+					snprintf(select, SELECT_LEN, "select type, sum(amount) as Forbruk from %s where date > '%4s-%02d-00' and date < '%4s-%02d-32' group by type order by type", TABLE, YEAR, month, YEAR, month);
+					if ( sqlite3_exec(database, select, callback, 0, &zErrMsg) != SQLITE_OK) {
+						fprintf(stderr, "SQL error: %s\n", zErrMsg);
+						sqlite3_free(zErrMsg);
+					}
+					snprintf(select, SELECT_LEN, "select sum(amount) as Total from %s where date > '%4s-%02d-00' and date < '%4s-%02d-32'", TABLE, YEAR, month, YEAR, month);
+					if ( sqlite3_exec(database, select, callback, 0, &zErrMsg) != SQLITE_OK) {
+						fprintf(stderr, "SQL error: %s\n", zErrMsg);
+						sqlite3_free(zErrMsg);
+					}
 				}
-				snprintf(select, SELECT_LEN, "select sum(amount) as Totalt from %s where date < '%4s-%02d-32' and date >= '%4s-%02d-00'", TABLE, YEAR, month, YEAR, month);
-				if ( sqlite3_exec(database, select, callback, 0, &zErrMsg) != SQLITE_OK) {
-					fprintf(stderr, "SQL error: %s\n", zErrMsg);
-					sqlite3_free(zErrMsg);
-				}
+				else	printf("Illegal value; '%s', entered. Must be a number between 1-12\n", command);
 			}
 			else if (execution == 3) {
 				printf("Select month 1-12: ");
-				len = strlen(fgets(command, 3, stdin)); command[len-1] = '\0';
+				len = strlen(fgets(command, COMMAND_LEN, stdin)); command[len-1] = '\0';
 				int month = atoi(command);
-				snprintf(select, SELECT_LEN, "select * from %s where date < '%4s-%02d-32' and date >= '%4s-%02d-00' order by date", TABLE, YEAR, month, YEAR, month);
-				if ( sqlite3_exec(database, select, callback, 0, &zErrMsg) != SQLITE_OK) {
-					fprintf(stderr, "SQL error: %s\n", zErrMsg);
-					sqlite3_free(zErrMsg);
+				if (0 < month && month <= 12) {
+					snprintf(select, SELECT_LEN, "select * from %s where date < '%4s-%02d-32' and date >= '%4s-%02d-00' order by date", TABLE, YEAR, month, YEAR, month);
+					#ifdef DEBUG
+					fprintf(stderr, "command: %s\nmonth: %02d\nselect: %s\n--------\n", command, month, select);
+					#endif
+					if ( sqlite3_exec(database, select, callback, 0, &zErrMsg) != SQLITE_OK) {
+						fprintf(stderr, "SQL error: %s\n", zErrMsg);
+						sqlite3_free(zErrMsg);
+					}
+					snprintf(select, SELECT_LEN, "select sum(amount) as Total from %s where date < '%4s-%02d-32' and date >= '%4s-%02d-00'", TABLE, YEAR, month, YEAR, month);
+					if ( sqlite3_exec(database, select, callback, 0, &zErrMsg) != SQLITE_OK) {
+						fprintf(stderr, "SQL error: %s\n", zErrMsg);
+						sqlite3_free(zErrMsg);
+					}					
 				}
-				snprintf(select, SELECT_LEN, "select sum(amount) as Totalt from %s where date < '%4s-%02d-32' and date >= '%4s-%02d-00'", TABLE, YEAR, month, YEAR, month);
-				if ( sqlite3_exec(database, select, callback, 0, &zErrMsg) != SQLITE_OK) {
-					fprintf(stderr, "SQL error: %s\n", zErrMsg);
-					sqlite3_free(zErrMsg);
-				}
+				else	printf("Illegal value; '%s', entered. Must be a number between 1-12\n", command);
 			}
 			stats_cnt ++;
 		}

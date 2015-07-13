@@ -1,7 +1,12 @@
 Changelog
 
+SATURDAY JULY 11th 2015
+*	Tweaked the new "stats" command, and added limit to check for correct month range entered.
+*	Fixed a bug in the "config" command when the file 'config.ini' does not exist.
+*	
+
 MONDAY JULY 6th 2015
-*	Added a new command "stats", for quick easy print of stats. Currently contains 2 predefined commands; (1) A print of all types and their balance. (2) Same as (1) but restricted to a prompted month. (3) Prints all transactions registered in a prompted month.
+*	Added a new command "stats", for quick easy print of stats. Currently contains 3 predefined commands; (1) A print of all types and their balance. (2) Same as (1) but restricted to a prompted month. (3) Prints all transactions registered in a prompted month.
 *	More work on maintainability by rewriting code to be within the CCodingStandard referenced to earlier.
 *	Moved some functions to other files, as I found their previous position to not be as convenient as before.
 *	Tweaked "update" command to be able to receive single digit day numbers, and still carry out correct SQL statements.

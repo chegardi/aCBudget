@@ -3,20 +3,20 @@
 /*
  *	Fetches/creates default configuration in 'config.ini' file
  */
-void configurate(char *command, sqlite3 *db)
+int configurate(char *command)
 {
 	#if DEBUG
 	fprintf(stderr, "Configurating..\n");
 	#endif
     //	Initiating default values
-	DATABASE = malloc(sizeof(char)*strlen("regnskap.db"));
-	strcpy(DATABASE, "regnskap.db");
+	DATABASE = malloc(sizeof(char)*strlen("database.db"));
+	strcpy(DATABASE, "database.db");
 	MONTH = malloc(sizeof(char)*strlen("01"));
 	strcpy(MONTH, "01");
-	YEAR = malloc(sizeof(char)*strlen("2014"));
-	strcpy(YEAR, "2014");
-	TABLE = malloc(sizeof(char)*strlen("r2014"));
-	strcpy(TABLE, "r2014");
+	YEAR = malloc(sizeof(char)*strlen("2015"));
+	strcpy(YEAR, "2015");
+	TABLE = malloc(sizeof(char)*strlen("r2015"));
+	strcpy(TABLE, "r2015");
 	READ_COUNTER = malloc(sizeof(int));
 	(*READ_COUNTER) = 0;
 	//	Checking for configuration file
@@ -34,56 +34,53 @@ void configurate(char *command, sqlite3 *db)
 		fprintf(config_file, "table=%s\n", TABLE);
 		fprintf(config_file, "year=%s\n", YEAR);
 		fprintf(config_file, "month=%s\n", MONTH);
-		fprintf(config_file, "read=%d\n", (*P_COUNTER));
+		fprintf(config_file, "read=%d\n", (*READ_COUNTER));
 		fclose(config_file);
 		#if DEBUG
 		fprintf(stderr, "'%s' created\n", CONFIG_FILENAME);
 		#endif
-		snprintf(command, COMMAND_LEN, "'%s' created and default settings loaded\n", CONFIG_FILENAME);
 	}	//	file did not exist
 	else  {	// file exists
-		int counter = 1;
-		char *token;
+		int	counter = 1,
+			len=0;
+		char *variable, *value;
 		do {
 			if (fscanf(config_file, "%s\n", command) > COMMAND_LEN) {
 				fprintf(stderr, "ERROR ON LINE #%d IN '%s'\nVALUE TOO LONG\n", counter, CONFIG_FILENAME);
-				exit(EXIT_FAILURE);
+				return 1;
 			}	//	too long line read
 			counter++;
 			if (command[0] != '#')	{	//	not a comment
-				token = strtok(command, "=");
-				if (strncmp(token, "year", 4) == 0) {
-					token = strtok(NULL, "");
+				variable = strtok(command, "=");
+				value = strtok(NULL, "");
+				len = strlen(variable)+1;
+				if (strncmp(variable, "year", 4) == 0) {
 					free(YEAR);
-					YEAR = malloc(sizeof(char)*strlen(token));
-					strcpy(YEAR, token);
+					YEAR = malloc(sizeof(char)*len);
+					strncpy(YEAR, value, len);
 					#if DEBUG
 					fprintf(stderr, "YEAR=%s\n", YEAR);
 					#endif
-				} else if (strncmp(token, "month", 5) == 0) {
-					token = strtok(NULL, "");
+				} else if (strncmp(variable, "month", 5) == 0) {
 					free(MONTH);
-					MONTH = malloc(sizeof(char)*strlen(token));
-					strcpy(MONTH, token);
-				} else if (strncmp(token, "table", 5) == 0) {
-					token = strtok(NULL, "");
+					MONTH = malloc(sizeof(char)*len);
+					strncpy(MONTH, value, len);
+				} else if (strncmp(variable, "table", 5) == 0) {
 					free(TABLE);
-					TABLE = malloc(sizeof(char)*strlen(token));
-					strcpy(TABLE, token);
+					TABLE = malloc(sizeof(char)*len);
+					strncpy(TABLE, value, len);
 					#if DEBUG
 					fprintf(stderr, "TABLE=%s\n", TABLE);
 					#endif
-				} else if (strncmp(token, "database", 8) == 0) {
-					token = strtok(NULL, "");
+				} else if (strncmp(variable, "database", 8) == 0) {
 					free(DATABASE);
-					DATABASE = malloc(sizeof(char)*strlen(token));
-					strcpy(DATABASE, token);
+					DATABASE = malloc(sizeof(char)*len);
+					strncpy(DATABASE, value, len);
 					#if DEBUG
 					fprintf(stderr, "DATABASE=%s\n", DATABASE);
 					#endif
-				} else if (strncmp(token, "read", 4) == 0) {
-					token = strtok(NULL, "");
-					(*READ_COUNTER) = atoi(token);
+				} else if (strncmp(variable, "read", 4) == 0) {
+					(*READ_COUNTER) = atoi(value);
 				}
 			}	//	done with line
 		} while (!feof(config_file));	//	lines left to check
@@ -93,6 +90,7 @@ void configurate(char *command, sqlite3 *db)
 		#endif
 		snprintf(command, COMMAND_LEN, "Settings loaded from '%s'\n", CONFIG_FILENAME);
 	}	//	file existed
+	return 0;
 }
 
 /*
@@ -104,17 +102,15 @@ int main(int argc, char **argv)
 	char *zErrMsg = 0, command[COMMAND_LEN], *printout;
 	int rc, len;
 	/*
-	 *	General program purpose
 	 *	First configurates database according to a config-file (if not present, creates default)
 	 *	Then accepts user input and acts accordingly.
 	 */
-	configurate(command, database);
+	configurate(command);
 	rc = sqlite3_open(DATABASE, &database);
 	if ( rc ) {
 		fprintf(stderr, "Can't open database: %s\n", sqlite3_errmsg(database));
 		return(1);
 	}
-	//	Startup userprompt for revert_or_backup
 	len = get_command(command, "main");
 	//	Loop user for input while user don't want to quit
 	while ((strncmp(command, "q\0", 2) != 0) && (strncmp(command, "quit\0", 5) != 0)) {
@@ -145,7 +141,7 @@ int main(int argc, char **argv)
 /*
  *	Saves current configuration to 'config.ini'
  */
-void save_config(char *command)
+void save_config(char *command, sqlite3 *database)
 {
 	FILE *config_file;
 	config_file = fopen(CONFIG_FILENAME, "r");
@@ -163,7 +159,6 @@ void save_config(char *command)
 		fprintf(config_file, "read=%d\n", (*READ_COUNTER));
 		fclose(config_file);
 		snprintf(command, COMMAND_LEN, "Settings saved to new file '%s'\n", CONFIG_FILENAME);
-		return;
 	}
 	else  {	// file exists, merging
 		#if DEBUG

@@ -125,12 +125,15 @@ void generate_id(char *id)
 	id[ID_LEN-1] = '\0';
 }
 
+/*
+ *	Prints out the possible commands within "stats" command.
+ */
 int print_stats_help()
 {
 	int cnt_commands = 0;
 	printf("---Printable statistics---\n");
 	printf("%-2d: Number of types within year %4s with corresponding sums\n", ++cnt_commands, YEAR);
-	printf("%-2d: Number of types within a month(prompted) corresponding sums\n", ++cnt_commands);
+	printf("%-2d: Number of types within a month (prompted) with corresponding sums\n", ++cnt_commands);
 	printf("%-2d: All transactions within a month (prompted)\n", ++cnt_commands);
 	printf("%-2c: Prints this screen\n", 'h');
 	printf("%-2c: exit\n", 'e');

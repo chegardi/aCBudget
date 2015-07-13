@@ -99,7 +99,7 @@ $	aCBudget.config > month (mn)^
 Shows the saved month.
 $	aCBudget.config > table (tb)^
 Shows the saved table.
-$	aCBudget.config > database (db)^
+$	aCBudget.config > database (db)^§
 Shows the saved database.
 $	aCBudget.config > read (rd)^
 Shows the number of lines currently being "skipped".
@@ -110,6 +110,7 @@ Reverts backup database to current database - canceling all executions since las
 $	aCBudget.config > help (h)
 Shows a list of commands within 'aCBudget.config', their abbreviations and some explanations.
 Commands marked with '^' are able to be redefined by typing the variablename followed by '=' and the new value. Ie. 'month=02' would change the current value of month to '02'.
+$ When changing database with the 'database=newdatabase.filetype', the program also closes previous database and tries to open the new database. If unsuccessful, it reopens old database with notification to user.
 
 *
 $	aCBudget.read > 
