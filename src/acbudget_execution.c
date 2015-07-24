@@ -215,7 +215,7 @@ char *myselect(char *command, sqlite3 *database)
  */
 int print_stats(char *command, sqlite3 *database)
 {
-	int		stats_cnt = 0,
+	int	stats_cnt = 0,
 			len = -1,
 			execution = -1,
 			max_commands = print_stats_help();
@@ -264,7 +264,7 @@ int print_stats(char *command, sqlite3 *database)
 				len = strlen(fgets(command, COMMAND_LEN, stdin)); command[len-1] = '\0';
 				int month = atoi(command);
 				if (0 < month && month <= 12) {
-					snprintf(select, SELECT_LEN, "select * from %s where date < '%4s-%02d-32' and date >= '%4s-%02d-00' order by date", TABLE, YEAR, month, YEAR, month);
+					snprintf(select, SELECT_LEN, "select * from %s where date < '%4s-%02d-32' and date > '%4s-%02d-00' order by date", TABLE, YEAR, month, YEAR, month);
 					#ifdef DEBUG
 					fprintf(stderr, "command: %s\nmonth: %02d\nselect: %s\n--------\n", command, month, select);
 					#endif
@@ -272,13 +272,35 @@ int print_stats(char *command, sqlite3 *database)
 						fprintf(stderr, "SQL error: %s\n", zErrMsg);
 						sqlite3_free(zErrMsg);
 					}
-					snprintf(select, SELECT_LEN, "select sum(amount) as Total from %s where date < '%4s-%02d-32' and date >= '%4s-%02d-00'", TABLE, YEAR, month, YEAR, month);
+					snprintf(select, SELECT_LEN, "select sum(amount) as Total from %s where date < '%4s-%02d-32' and date > '%4s-%02d-00'", TABLE, YEAR, month, YEAR, month);
 					if ( sqlite3_exec(database, select, callback, 0, &zErrMsg) != SQLITE_OK) {
 						fprintf(stderr, "SQL error: %s\n", zErrMsg);
 						sqlite3_free(zErrMsg);
 					}					
 				}
 				else	printf("Illegal value; '%s', entered. Must be a number between 1-12\n", command);
+			}
+			else if (execution == 4) {
+				int month_digit = 0;
+				char *months = "January\0February\0March\0April\0May\0June\0July\0August\0September\0October\0November\0December\0";
+				while (month_digit++ < 12) {
+					snprintf(select, SELECT_LEN, "select sum(amount) as %s from %s where date < '%4s-%02d-32' and date > '%4s-%02d-00'", months, TABLE, YEAR, month_digit, YEAR, month_digit);
+					#ifdef DEBUG
+					fprintf(stderr, "%02d month = '%s'\n", month_digit, months);
+					fprintf(stderr, "select : '%s'\n", select);
+					#endif
+					if ( sqlite3_exec(database, select, callback, 0, &zErrMsg) != SQLITE_OK ) {
+						fprintf(stderr, "SQL error: %s\n", zErrMsg);
+						sqlite3_free(zErrMsg);
+					}
+					while ((*months) != 0)	months++;
+					months++;
+				}
+				snprintf(select, SELECT_LEN, "select sum(amount) as Total from %s", TABLE);
+				if ( sqlite3_exec(database, select, callback, 0, &zErrMsg) != SQLITE_OK ) {
+					fprintf(stderr, "SQL error: %s\n", zErrMsg);
+					sqlite3_free(zErrMsg);
+				}
 			}
 			stats_cnt ++;
 		}

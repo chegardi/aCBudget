@@ -18,7 +18,7 @@
 #define INPUT_LEN 512		//	regular length x2
 #define INSERT_LEN 256		//	for use during insert-actions on SQL
 #define PRINT_LEN 1024		//	regular length x4
-#define SELECT_LEN 256		//	for use during select-actions on SQL
+#define SELECT_LEN 1024		//	for use during select-actions on SQL
 #define TYPE_LEN 16			//	max length of type is 15 + \0
 
 //	structs

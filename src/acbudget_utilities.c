@@ -59,51 +59,75 @@ int free_all()
 	#endif
 	if	(DATABASE != NULL) {	
 		#if DEBUG
-		fprintf(stderr, "DATABASE\n");
+		fprintf(stderr, "DATABASE...");
 		#endif
 		free(DATABASE);
+		#ifdef DEBUG
+		fprintf(stderr, "freed\n");
+		#endif
 	}
 	if	(TABLE != NULL) {	
 		#if DEBUG
-		fprintf(stderr, "TABLE\n");
+		fprintf(stderr, "TABLE...");
 		#endif
 		free(TABLE);
+		#ifdef DEBUG
+		fprintf(stderr, "freed\n");
+		#endif
 	}
 	if	(MONTH != NULL) {
 		#if DEBUG
-		fprintf(stderr, "MONTH freed\n");
+		fprintf(stderr, "MONTH...");
 		#endif
 		free(MONTH);
+		#ifdef DEBUG
+		fprintf(stderr, "freed\n");
+		#endif
 	}
 	if	(YEAR != NULL) {
 		#if DEBUG
-		fprintf(stderr, "YEAR freed\n");
+		fprintf(stderr, "YEAR...");
 		#endif
 		free(YEAR);
+		#ifdef DEBUG
+		fprintf(stderr, "freed\n");
+		#endif
 	}
 	if	(CONFIG_FILENAME != NULL) {
 		#if DEBUG
-		fprintf(stderr, "CONFIG_FILENAME freed\n");
+		fprintf(stderr, "CONFIG_FILENAME...");
 		#endif
 		free(CONFIG_FILENAME);
+		#ifdef DEBUG
+		fprintf(stderr, "freed\n");
+		#endif
 	}
 	if	(BACKUP_FILENAME != NULL) {
 		#if DEBUG
-		fprintf(stderr, "BACKUP_FILENAME freed\n");
+		fprintf(stderr, "BACKUP_FILENAME...");
 		#endif
 		free(BACKUP_FILENAME);
+		#ifdef DEBUG
+		fprintf(stderr, "freed\n");
+		#endif
 	}
 	if	(UNIQUE_ID != NULL) {
 		#if DEBUG
-		fprintf(stderr, "UNIQUE_ID\n");
+		fprintf(stderr, "UNIQUE_ID...\n");
 		#endif
 		free(UNIQUE_ID);
+		#ifdef DEBUG
+		fprintf(stderr, "freed\n");
+		#endif
 	}
 	if	(P_COUNTER != NULL) {
 		#if DEBUG
-		fprintf(stderr, "P_COUNTER\n");
+		fprintf(stderr, "P_COUNTER...");
 		#endif
 		free(P_COUNTER);
+		#ifdef DEBUG
+		fprintf(stderr, "freed\n");
+		#endif
 	}
 	#if DEBUG
 	fprintf(stderr, "All non-null variables freed!\n");
@@ -135,6 +159,7 @@ int print_stats_help()
 	printf("%-2d: Number of types within year %4s with corresponding sums\n", ++cnt_commands, YEAR);
 	printf("%-2d: Number of types within a month (prompted) with corresponding sums\n", ++cnt_commands);
 	printf("%-2d: All transactions within a month (prompted)\n", ++cnt_commands);
+	printf("%-2d: All months with balances\n", ++cnt_commands);
 	printf("%-2c: Prints this screen\n", 'h');
 	printf("%-2c: exit\n", 'e');
 	return cnt_commands;
