@@ -16,8 +16,13 @@ Current features:
 
 Wishes from the future:
 1. More solid and secure code and database manipulation.
-2. GUI
+* This has been done a lot in the last couple of months
+2. [-G]UI
+* Will remove the G, I am working on a user interface at the moment - and the 'insert' command has been implemented. More of this will be coming soon!
 3. Network capability
 4. Smartphone capability
+
+Setup:
+- See detailed_readme.txt or use the accompanying Makefile
 
 *See http://www.sqlite.org/ for download/interface and information on SQLite. I have now added the folder 'sql/' with the required files - but be sure to spread the word of SQLite and their awesome work!

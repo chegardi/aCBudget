@@ -1,5 +1,10 @@
 Changelog
 
+FRIDAY JULY 24th 2015
+*	Added another stats command, balance of all months in a given year.
+*	Provided makefile for they who use such magical files.
+*	Updated a section of "save_config()" function to be Windows or Linux specific, to provide compability with both when creating temporary file.
+
 SATURDAY JULY 11th 2015
 *	Tweaked the new "stats" command, and added limit to check for correct month range entered.
 *	Fixed a bug in the "config" command when the file 'config.ini' does not exist.

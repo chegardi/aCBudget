@@ -164,10 +164,21 @@ void save_config(char *command, sqlite3 *database)
 		#if DEBUG
 		fprintf(stderr, "Old config file found, merging...\n");
 		#endif
+		FILE *new_file;
 		char *token, tmpname[strlen(CONFIG_FILENAME)];
+		#ifdef __linux__	//	Linux gives warning
+		token = tmpname;
+		while ((*token) != 0) {
+			(*token) = 'X';
+			token++;
+		}
+		new_file = fdopen(mkstemp(tmpname), "w");
+		#else
 		tmpnam(tmpname);
+		new_file = fopen(tmpname, "w");
+		#endif
 		//_mktemp_s(tmpname, strlen(CONFIG_FILENAME));
-		FILE *new_file = fopen(tmpname, "w");
+		
 		#if DEBUG
 		fprintf(stderr, "Created file with temp-name: '%s'\n", tmpname);
 		#endif

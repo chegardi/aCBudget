@@ -1,21 +1,31 @@
-CC = gcc
-CFLAGS = -c
-DFLAGS = -c -g -DDEBUG
-SOURCES = src/*.c sql/*.c
-OBJECTS = $(SOURCES:.c=.o)
-EXECUTABLE = aCBudget
+CC=gcc
+CFLAGS=-c
+DFLAGS=-c -DDEBUG
 
-all: $(SOURCES) $(EXECUTABLE)
-	
-$(EXECUTABLE) : $(OBJECTS)
-	$(CC) $(LDFLAGS) $(OBJECTS) -o $@
+DEP=src/*.h
+SRC=src/*.c
+#OBJ=$(SRC:src/*.c=obj/*.o)
+OBJ=obj/*.o
 
-.c.o:
-	$(CC) $(CFLAGS) $< -o $@
+LIBS=-pthread -ldl
+
+all: obj
+	$(CC) $(OBJ) $(LIBS) -o aCBudget
+
+obj: $(SRC) $(DEPS)
+	$(CC) $(SRC) $(CFLAGS)
+	mkdir -p obj
+	mv -f *.o obj/
+
+sql: SRC=src/*.c sql/sqlite3.c
+sql: all
 
 debug: CFLAGS = $(DFLAGS)
 debug: all
 
-.PHONY: clean
+redo:
+	rm aCBudget obj/a*
+redo: all
+
 clean:
-	rm -rf *o aCBudget
+	rm -r obj aCBudget
