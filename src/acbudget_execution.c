@@ -676,7 +676,7 @@ int update(char *command, sqlite3 *database)
 		if ((strncmp(command, "e\0", 2) == 0) || (strncmp(command, "end\0", 4) == 0))	break;
 		(*P_COUNTER) = 1;
 		//	find entries based on day of month
-		snprintf(select, SELECT_LEN, "select comment, amount, type from %s where date = '%04s-%02s-%02d'", TABLE, YEAR, MONTH, atoi(command));
+		snprintf(select, SELECT_LEN, "select comment, amount, type from %s where date = '%04d-%02d-%02d'", TABLE, atoi(YEAR), atoi(MONTH), atoi(command));
 		#if DEBUG
 		fprintf(stdout, "Running select on %s: '%s'\n", DATABASE, select);
 		#endif
@@ -704,7 +704,7 @@ int update(char *command, sqlite3 *database)
 				#endif
 				//	allocating space for id from rownumber
 				UNIQUE_ID = malloc(sizeof(char) * ID_LEN);
-				len = snprintf(select, SELECT_LEN, "select id from %s where date = '%04s-%02s-%02s'", TABLE, YEAR, MONTH, day);
+				len = snprintf(select, SELECT_LEN, "select id from %s where date = '%04d-%02d-%02d'", TABLE, atoi(YEAR), atoi(MONTH), atoi(day));
 				//	prepare statement to find correct row for update
 				sqlite3_stmt **statement = malloc(1* sizeof( sqlite3_stmt *));
 				if (sqlite3_prepare_v2(database, select, len, statement, NULL) != SQLITE_OK) {
@@ -730,11 +730,11 @@ int update(char *command, sqlite3 *database)
 							break;
 						}
 						else if (sql_result == SQLITE_MISUSE) {
-							fprintf(stderr, "\nSQL misuse: Contact system creator", zErrMsg);
+							fprintf(stderr, "\nSQL misuse: Contact system creator\n");
 							break;
 						}
 						else if (sql_result == SQLITE_ERROR) {
-							fprintf(stderr, "\nSQL step-error: Contact system creator");
+							fprintf(stderr, "\nSQL step-error: Contact system creator\n");
 							break;
 						}
 						continue;
@@ -802,8 +802,8 @@ int update(char *command, sqlite3 *database)
 						get_update_command(amount, "amount"); amount[ID_LEN-1] = '\0';				//	amount
 						generate_id(UNIQUE_ID);																					//	id
 						//	insert into TABLE values (DATE, COMMENT, TYPE, AMOUNT, ID);
-						snprintf(select, SELECT_LEN, "insert into %s values('%04s-%02s-%02s', '%s', '%s', %s, '%s');",
-							TABLE, YEAR, MONTH, day, comment, type, amount, UNIQUE_ID);
+						snprintf(select, SELECT_LEN, "insert into %s values('%04d-%02d-%02d', '%s', '%s', %s, '%s');",
+							TABLE, atoi(YEAR), atoi(MONTH), atoi(day), comment, type, amount, UNIQUE_ID);
 						if (sqlite3_exec(database, select, NULL, 0, &zErrMsg) != SQLITE_OK) {
 							fprintf(stderr, "SQL error %s\n", zErrMsg);
 							sqlite3_free(zErrMsg);
