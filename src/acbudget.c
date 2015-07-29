@@ -8,23 +8,22 @@ int configurate(char *command)
 	#if DEBUG
 	fprintf(stderr, "Configurating..\n");
 	#endif
-    //	Initiating default values
-	DATABASE = malloc(sizeof(char)*strlen("database.db"));
-	strcpy(DATABASE, "database.db");
-	MONTH = malloc(sizeof(char)*strlen("01"));
-	strcpy(MONTH, "01");
-	YEAR = malloc(sizeof(char)*strlen("2015"));
-	strcpy(YEAR, "2015");
-	TABLE = malloc(sizeof(char)*strlen("r2015"));
-	strcpy(TABLE, "r2015");
-	READ_COUNTER = malloc(sizeof(int));
-	(*READ_COUNTER) = 0;
-	//	Checking for configuration file
-	CONFIG_FILENAME = malloc(sizeof(char) * strlen("config.ini"));
+    //	Checking for configuration file
+	if (!CONFIG_FILENAME)	CONFIG_FILENAME = calloc(1, sizeof(char) * strlen("config.ini")+1);
 	strcpy(CONFIG_FILENAME, "config.ini");
-	FILE *config_file;
-	config_file = fopen(CONFIG_FILENAME, "r");
+	FILE *config_file = fopen(CONFIG_FILENAME, "r");
 	if (config_file == NULL) {	// file does not exist 
+		//	Initiating default values
+		DATABASE = calloc(1, sizeof(char)*strlen("database.db")+1);
+		strcpy(DATABASE, "database.db");
+		MONTH = calloc(1, sizeof(char)*strlen("01")+1);
+		strcpy(MONTH, "01");
+		YEAR = calloc(1, sizeof(char)*strlen("2015")+1);
+		strcpy(YEAR, "2015");
+		TABLE = calloc(1, sizeof(char)*strlen("r2015")+1);
+		strcpy(TABLE, "r2015");
+		READ_COUNTER = calloc(1, sizeof(int));
+		(*READ_COUNTER) = 0;
 		#if DEBUG
 		fprintf(stderr, "Creating '%s'\n", CONFIG_FILENAME);
 		#endif
@@ -42,48 +41,50 @@ int configurate(char *command)
 	}	//	file did not exist
 	else  {	// file exists
 		int	counter = 1,
-			len=0;
+			len = 0,
+			end = 0;
 		char *variable, *value;
-		do {
-			if (fscanf(config_file, "%s\n", command) > COMMAND_LEN) {
-				fprintf(stderr, "ERROR ON LINE #%d IN '%s'\nVALUE TOO LONG\n", counter, CONFIG_FILENAME);
-				return 1;
-			}	//	too long line read
+		while (fgets(command, COMMAND_LEN, config_file) != 0) {
 			counter++;
 			if (command[0] != '#')	{	//	not a comment
 				variable = strtok(command, "=");
 				value = strtok(NULL, "");
-				len = strlen(variable)+1;
-				if (strncmp(variable, "year", 4) == 0) {
-					free(YEAR);
-					YEAR = malloc(sizeof(char)*len);
-					strncpy(YEAR, value, len);
-					#if DEBUG
-					fprintf(stderr, "YEAR=%s\n", YEAR);
-					#endif
-				} else if (strncmp(variable, "month", 5) == 0) {
-					free(MONTH);
-					MONTH = malloc(sizeof(char)*len);
-					strncpy(MONTH, value, len);
-				} else if (strncmp(variable, "table", 5) == 0) {
-					free(TABLE);
-					TABLE = malloc(sizeof(char)*len);
-					strncpy(TABLE, value, len);
-					#if DEBUG
-					fprintf(stderr, "TABLE=%s\n", TABLE);
-					#endif
-				} else if (strncmp(variable, "database", 8) == 0) {
-					free(DATABASE);
-					DATABASE = malloc(sizeof(char)*len);
-					strncpy(DATABASE, value, len);
-					#if DEBUG
-					fprintf(stderr, "DATABASE=%s\n", DATABASE);
-					#endif
-				} else if (strncmp(variable, "read", 4) == 0) {
-					(*READ_COUNTER) = atoi(value);
+				#ifdef DEBUG
+				fprintf(stderr, "(%s) %s = %s\n", command, variable, value);
+				#endif
+				len = strlen(value);
+				if (len > 0) {
+					if (strncmp(variable, "year\0", 5) == 0) {free(YEAR);
+						YEAR = calloc(1, sizeof(char)*len);
+						strncpy(YEAR, value, len); YEAR[len-1] = 0;
+						#if DEBUG
+						fprintf(stderr, "YEAR=%s\n", YEAR);
+						#endif
+					} else if (strncmp(variable, "month\0", 6) == 0) {
+						free(MONTH);
+						MONTH = calloc(1, sizeof(char)*len);
+						strncpy(MONTH, value, len); MONTH[len-1] = 0;
+					} else if (strncmp(variable, "table\0", 6) == 0) {
+						free(TABLE);
+						TABLE = calloc(1, sizeof(char)*len);
+						strncpy(TABLE, value, len); TABLE[len-1] = 0;
+						#if DEBUG
+						fprintf(stderr, "TABLE=%s\n", TABLE);
+						#endif
+					} else if (strncmp(variable, "database\0", 9) == 0) {
+						free(DATABASE);
+						DATABASE = calloc(1, sizeof(char)*len);
+						strncpy(DATABASE, value, len); DATABASE[len-1] = 0;
+						#if DEBUG
+						fprintf(stderr, "DATABASE=%s\n", DATABASE);
+						#endif
+					} else if (strncmp(variable, "read", 4) == 0) {
+						if (!READ_COUNTER)	READ_COUNTER = calloc(1, sizeof(int));
+						(*READ_COUNTER) = atoi(value);
+					}
 				}
 			}	//	done with line
-		} while (!feof(config_file));	//	lines left to check
+		} //while (!feof(config_file));	//	lines left to check
 		fclose(config_file);
 		#if DEBUG
 		fprintf(stderr, "'%s' imported\n", CONFIG_FILENAME);
@@ -98,9 +99,9 @@ int configurate(char *command)
  */
 int main(int argc, char **argv)
 {
-	sqlite3 *database;
-	char *zErrMsg = 0, command[COMMAND_LEN], *printout;
-	int rc, len;
+	sqlite3 *database = 0;
+	char *zErrMsg = 0, command[COMMAND_LEN] = "\0", *printout = 0;
+	int rc = 0, len = 0;
 	/*
 	 *	First configurates database according to a config-file (if not present, creates default)
 	 *	Then accepts user input and acts accordingly.
@@ -119,6 +120,10 @@ int main(int argc, char **argv)
 		#endif
 		printout = execute_command(command, database);
 		//	Printout if there is anything to print
+		if (printout == 0) {
+			fprintf(stderr, "Error in a command, please look above for other error-messages\n");
+			break;
+		}
 		if (strlen(printout) > 1) {
 			printf("%s", printout);
 		}
@@ -126,6 +131,7 @@ int main(int argc, char **argv)
 		len = get_command(command, "main");
 	}
 	sqlite3_close(database);
+	free(CONFIG_FILENAME);
 	if (free_all()) {	
 		#if DEBUG
 		fprintf(stderr, "free_all() did not return correctly\n.");
@@ -165,20 +171,14 @@ void save_config(char *command, sqlite3 *database)
 		fprintf(stderr, "Old config file found, merging...\n");
 		#endif
 		FILE *new_file;
-		char *token, tmpname[strlen(CONFIG_FILENAME)];
-		#ifdef __linux__	//	Linux gives warning
-		token = tmpname;
-		while ((*token) != 0) {
-			(*token) = 'X';
-			token++;
-		}
+		char *token, *tmpname = calloc(1, sizeof(char) * strlen(CONFIG_FILENAME)+1);
+		memset(tmpname, 'X', sizeof(strlen(CONFIG_FILENAME)));
+		#ifdef __linux__	//	Linux wants to use mkstemp()
 		new_file = fdopen(mkstemp(tmpname), "w");
-		#else
+		#else	//	use tmpnam()
 		tmpnam(tmpname);
 		new_file = fopen(tmpname, "w");
 		#endif
-		//_mktemp_s(tmpname, strlen(CONFIG_FILENAME));
-		
 		#if DEBUG
 		fprintf(stderr, "Created file with temp-name: '%s'\n", tmpname);
 		#endif
@@ -218,6 +218,7 @@ void save_config(char *command, sqlite3 *database)
 			printf("Failed to rename new 'config.ini';\n%s\n", strerror(errno));
 		}
 		snprintf(command, COMMAND_LEN, "Settings saved to '%s'\n", CONFIG_FILENAME);
+		free(tmpname);
 	}
 	return;
 }

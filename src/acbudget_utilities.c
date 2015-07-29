@@ -1,6 +1,16 @@
 #include "acbudget.h"
 
 /*
+ *	To us instead of fflush(stdin)
+ */
+void clean_stdin(void)
+{
+    char *dummy = calloc(1, sizeof(char) * 2);
+    fgets(dummy, 2, stdin);
+    free(dummy);
+}
+
+/*
  *	Numbers in both files are given with
  *	"," where it should be "." in database.
  *	This method converts number to remove
@@ -93,15 +103,6 @@ int free_all()
 		fprintf(stderr, "freed\n");
 		#endif
 	}
-	if	(CONFIG_FILENAME != NULL) {
-		#if DEBUG
-		fprintf(stderr, "CONFIG_FILENAME...");
-		#endif
-		free(CONFIG_FILENAME);
-		#ifdef DEBUG
-		fprintf(stderr, "freed\n");
-		#endif
-	}
 	if	(BACKUP_FILENAME != NULL) {
 		#if DEBUG
 		fprintf(stderr, "BACKUP_FILENAME...");
@@ -111,23 +112,8 @@ int free_all()
 		fprintf(stderr, "freed\n");
 		#endif
 	}
-	if	(UNIQUE_ID != NULL) {
-		#if DEBUG
-		fprintf(stderr, "UNIQUE_ID...\n");
-		#endif
-		free(UNIQUE_ID);
-		#ifdef DEBUG
-		fprintf(stderr, "freed\n");
-		#endif
-	}
-	if	(P_COUNTER != NULL) {
-		#if DEBUG
-		fprintf(stderr, "P_COUNTER...");
-		#endif
-		free(P_COUNTER);
-		#ifdef DEBUG
-		fprintf(stderr, "freed\n");
-		#endif
+	if (READ_COUNTER) {
+		free(READ_COUNTER);
 	}
 	#if DEBUG
 	fprintf(stderr, "All non-null variables freed!\n");

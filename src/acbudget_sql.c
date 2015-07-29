@@ -41,7 +41,7 @@ int easy_execute_sql(int argc, char **argv)
 int insert(char *command, sqlite3 *database)
 {
 	int len, i, counter = 0;	
-	char *zErrMsg = 0, *insert = malloc(sizeof(char)*INSERT_LEN), *token, id[ID_LEN];
+	char *zErrMsg = 0, *insert = calloc(1, sizeof(char)*INSERT_LEN), *token, id[ID_LEN];
 	if (insert == NULL)	return -1;
 	char usage[] = "usage (e or end to quit)\n"\
 			 "***\naCBudget.insert > YYYY-MM-DD,comment,type,amount\n"\
@@ -132,7 +132,7 @@ int revert_or_backup(sqlite3 *database, int isSave)
 	sqlite3 *to;             /* Database to copy to (file or database) */
 	sqlite3 *from;           /* Database to copy from (file or database) */
 	int len = (strlen(DATABASE) + strlen(".backup"))+1;	/* string-length */
-	char *backupname = malloc(sizeof(char) * len);		/* name of backup-db */
+	char *backupname = calloc(1, sizeof(char) * len);		/* name of backup-db */
 	snprintf(backupname, len, "%s.backup", DATABASE);
 
 	/* Open the database file identified by DATABASE. Exit early if this fails

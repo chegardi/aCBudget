@@ -1,16 +1,17 @@
 Changelog
 
-<<<<<<< HEAD
+WEDNESDAY JULY 29th 2015
+*	All functionalities of program have been run with memorycheck in valgrind. Some patching where needed and have been applied. As of now there are no memory leaks present that I am aware of. But there is a problem with changing database during runtime. If this is an issue, change the database in config;	config > database=newdatabase.type > sv [save] > e[xit] > q[uit] > start up program again. This should work fine.
+
 FRIDAY JULY 24th 2015
 *	Added another stats command, balance of all months in a given year.
 *	Provided makefile for they who use such magical files.
 *	Updated a section of "save_config()" function to be Windows or Linux specific, to provide compability with both when creating temporary file.
-=======
+
 MONDAY JULY 13th 2015
 *	Updated the "database=new_database.type" to actually change to the new database, no longer requiring a save to config file and restart of program.
 *	Updated stats to show a balance at the end of the output.
 *	Added a struct INSERT which has a member for each variable 'date', 'comment', 'type', amount, 'id', for easier code maintainability.
->>>>>>> aCBudget2/master
 
 SATURDAY JULY 11th 2015
 *	Tweaked the new "stats" command, and added limit to check for correct month range entered.
