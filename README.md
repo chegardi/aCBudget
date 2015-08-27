@@ -12,12 +12,11 @@ Current features:
 - backup functionality
 
 Wishes from the future:
-1. UI
-* This is in the making.
-2. Network capability
-3. Smartphone capability
+*. UI - This is in the making.
+*. Network capability
+*. Smartphone capability
 
 Setup:
-- See detailed_readme.txt or use the accompanying Makefile (run 'make sql' is first, then use 'make')
+- See 'detailed_readme'.txt or use the accompanying Makefile (run 'make sql' if first time, then use 'make' if you've changed the code)
 
-*See http://www.sqlite.org/ for download/interface and information on SQLite. I have now added the folder 'sql/' with the required files - but be sure to spread the word of SQLite and their awesome work!
+See http://www.sqlite.org/ for download/interface and information on SQLite. I have now added the folder 'sql/' with the required files - but be sure to spread the word of SQLite and their awesome work!

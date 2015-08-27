@@ -4,28 +4,30 @@ DFLAGS=-c -DDEBUG
 
 DEP=src/*.h
 SRC=src/*.c
-#OBJ=$(SRC:src/*.c=obj/*.o)
+SQLSRC=src/*.c sql/sqlite3.c
 OBJ=obj/*.o
+SQLOBJ=$(OBJ:sql/%.c=obj/%.o)
 
 LIBS=-pthread -ldl
 
 all: obj
 	$(CC) $(OBJ) $(LIBS) -o aCBudget
 
-obj: $(SRC) $(DEPS)
+obj: $(SRC) $(DEP)
 	$(CC) $(SRC) $(CFLAGS)
 	mkdir -p obj
 	mv -f *.o obj/
 
-sql: SRC=src/*.c sql/sqlite3.c
+sql: SRC=$(SQLSRC)
 sql: all
 
 debug: CFLAGS = $(DFLAGS)
 debug: all
 
-redo:
+remove:
 	rm aCBudget obj/a*
-redo: all
+redo: remove all
 
 clean:
-	rm -r obj aCBudget
+	rm aCBudget
+	rm -r obj

@@ -67,52 +67,47 @@ char *config_command(char *command, sqlite3 *database)
 		else {
 			len = strlen(command);
 			variable = xstrtok(command, "=");
-			if (len != strlen(variable))
-			{
-				if (strncmp(variable, "year\0", 5) == 0)
-				{
-					value = xstrtok(NULL, "");
+			if (len != strlen(variable)) {	//	to be sure there actually was a '=' sign
+				value = xstrtok(NULL, "");
+				if (strncmp(variable, "year\0", 5) == 0) {
 					free(YEAR);
 					YEAR = calloc(1, sizeof(char)*strlen(value));
 					strcpy(YEAR, value);
 				}
-				else if (strncmp(variable, "month\0", 6) == 0)
-				{
-					value = xstrtok(NULL, "");
+				else if (strncmp(variable, "month\0", 6) == 0) {
 					free(MONTH);
 					MONTH = calloc(1, sizeof(char)*strlen(value));
 					strcpy(MONTH, value);
 				}
-				else if (strncmp(variable, "table\0", 6) == 0)
-				{
-					value = xstrtok(NULL, "");
+				else if (strncmp(variable, "table\0", 6) == 0) {
 					free(TABLE);
 					TABLE = calloc(1, sizeof(char)*strlen(value));
 					strcpy(TABLE, value);
 				}
-				else if (strncmp(variable, "database\0", 9) == 0)
-				{
-					value = xstrtok(NULL, "");
-					sqlite3_close(database);
-					if (sqlite3_open(value, &database) != SQLITE_OK) {	//	database could not be opened
-						fprintf(stderr, "Failed to open database (%s). SQLError-message: %s\nTrying to open old database...", value, sqlite3_errmsg(database));
-						if (sqlite3_open(DATABASE, &database) != SQLITE_OK) {		//	old database could not be opened
-							fprintf(stderr, "Failed to open old database (%s). SQLError-message: %s\nProgram shutdown to prevent damage to files.", DATABASE, sqlite3_errmsg(database));
-							exit(EXIT_FAILURE);
+				else if (strncmp(variable, "database\0", 9) == 0) {
+					int retval = sqlite3_close(database);
+					if (retval == SQLITE_OK) {
+						printf("retval (%d) ?= SQLITE_OK (%d) = true\n", retval, SQLITE_OK);
+						if (sqlite3_open(value, &database) != SQLITE_OK) {	//	database could not be opened
+							fprintf(stderr, "Failed to open database (%s). SQLError-message: %s\nTrying to open old database...", value, sqlite3_errmsg(database));
+							if (sqlite3_open(DATABASE, &database) != SQLITE_OK) {		//	old database could not be opened
+								fprintf(stderr, "Failed to open old database (%s). SQLError-message: %s\nProgram shutdown to prevent damage to files.", DATABASE, sqlite3_errmsg(database));
+								exit(EXIT_FAILURE);
+							}
+						}
+						else {	//	database opened successfully
+							len = strlen(value)+1;
+							if (strlen(DATABASE) != strlen(value)) {	//	unequal lengths, new mallocation neccesary
+								free(DATABASE);
+								DATABASE = calloc(1, sizeof(char)*len);
+							}
+							strncpy(DATABASE, value, len);
 						}
 					}
-					else {	//	database opened successfully
-						len = strlen(value)+1;
-						if (strlen(DATABASE) != strlen(value)) {	//	unequal lengths, new mallocation neccesary
-							free(DATABASE);
-							DATABASE = calloc(1, sizeof(char)*len);
-						}
-						strncpy(DATABASE, value, len);
-					}
+					else printf("Could not change database to '%s', try again\n", value);
+					printf("retval (%d) ?= SQLITE_OK (%d) = false?\n", retval, SQLITE_OK);
 				}
-				else if (strncmp(variable, "read\0", 5) == 0) 
-				{
-					value = xstrtok(NULL, "");
+				else if (strncmp(variable, "read\0", 5) == 0) {
 					(*READ_COUNTER) = atoi(value);
 				}
 				else	printf("No such configurable variable: %s\n", variable);
@@ -153,7 +148,7 @@ char *execute_command(char *command, sqlite3 *database)
 }
 
 /*
- *	Prompts for and stores next command	
+ *	Prompts for and stores next command
  */
 int get_command(char *command, char *command_text)
 {
@@ -222,7 +217,7 @@ int print_stats(char *command, sqlite3 *database)
 			len = -1,
 			execution = -1,
 			max_commands = print_stats_help();
-	char	*select = calloc(1, sizeof(char)*SELECT_LEN),
+	char	select[SELECT_LEN],
 			*zErrMsg;
 	do {
 		/*	prompt user for command	*/
@@ -279,7 +274,7 @@ int print_stats(char *command, sqlite3 *database)
 					if ( sqlite3_exec(database, select, callback, 0, &zErrMsg) != SQLITE_OK) {
 						fprintf(stderr, "SQL error: %s\n", zErrMsg);
 						sqlite3_free(zErrMsg);
-					}					
+					}
 				}
 				else	printf("Illegal value; '%s', entered. Must be a number between 1-12\n", command);
 			}
@@ -309,7 +304,6 @@ int print_stats(char *command, sqlite3 *database)
 		}
 		else	printf("No statistics on '%s'\n", command);
 	}	while (strncmp(command, "e\0", 2) != 0);
-	free(select);
 	return stats_cnt;
 }
 
@@ -334,7 +328,7 @@ void print_help(char *command)
  * Prompts user for location of file.
  *	Then prompts user for filetype, implemented
  *	for files downloaded from DNB Norway(1) and
- *	Sparebanken Sør(2)
+ *	Sparebanken SÃ¸r(2)
  */
 int read_file(char *command, sqlite3 *database)
 {
@@ -351,7 +345,7 @@ int read_file(char *command, sqlite3 *database)
 			printf("'%s' does not exist\n", filename);
 			continue;
 		}
-		printf("DNB (1), Sparebanken Sør (2) file or continue last(3) ? ");
+		printf("DNB (1), Sparebanken SÃ¸r (2) file or continue last(3) ? ");
 		scanf("%c", &type);
 		clean_stdin();
 		if (type=='1') {
@@ -363,7 +357,7 @@ int read_file(char *command, sqlite3 *database)
 			counter += read_SBS(fp, database);
 		}
 		else if (type=='3') {
-			printf("Last DNB (1) or Sparebanken Sør (2) file ? ");
+			printf("Last DNB (1) or Sparebanken SÃ¸r (2) file ? ");
 			scanf("%c", &type);
 			clean_stdin();
 			if (type=='1')
@@ -373,7 +367,7 @@ int read_file(char *command, sqlite3 *database)
 			else
 				printf("%c was not a valid file option.\n", type);
 		}
-		else	
+		else
 			printf("%c was not a valid option.\n", type);
 		fclose(fp);
 	}
@@ -383,7 +377,7 @@ int read_file(char *command, sqlite3 *database)
 /*
  *	Main method to read DNB files.
  *	Reads file from start or until user ends at given checkpoints.
- *	
+ *
  */
 int read_DNB(FILE *fp, sqlite3 *database)
 {
@@ -452,7 +446,7 @@ int read_DNB(FILE *fp, sqlite3 *database)
 		#if DEBUG
 		fprintf(stderr, "amount: %s\n", token);
 		#endif
-		if (error > 3) {	//	Amount is deposited, decreasing money spent
+		if (error > 4) {	//	Amount is deposited, decreasing money spent
 			insert.amount[0] = '-';
 			copy_number(1, insert.amount, token);
 		} else	//	Amount is withdrawn, increasing money spent
@@ -524,8 +518,8 @@ int read_DNB(FILE *fp, sqlite3 *database)
 }
 
 /*
- *	Main method for reading files from Sparebanken Sør
- *	Almost same functionality as DNB method, with 
+ *	Main method for reading files from Sparebanken SÃ¸r
+ *	Almost same functionality as DNB method, with
  *	some tweaks to read correctly from a different filetype (.csv)
  */
 int read_SBS(FILE *fp, sqlite3 *database)
@@ -534,7 +528,7 @@ int read_SBS(FILE *fp, sqlite3 *database)
 	fprintf(stderr, "read SBS\n");
 	#endif
 	int counter = 0, error, lines = 0;
-	char	correct, 
+	char	correct,
 			input[INPUT_LEN],					//	input
 			insert_into[INSERT_LEN],		//	insert into statemtn
 			dateday[3],								//	dd daydate
@@ -553,8 +547,8 @@ int read_SBS(FILE *fp, sqlite3 *database)
 		/*
 		 *	This is input format of SBS files. Separations
 		 *	is tabulated, and not spaced.
-		 *	Dato	Forklaring	Ut av konto	Inn på konto
-		 * 30.01.2014	30.01 INFORMATIKKKAFE GAUSTADALLEE OSLO	28,00	
+		 *	Dato	Forklaring	Ut av konto	Inn pÃ¥ konto
+		 * 30.01.2014	30.01 INFORMATIKKKAFE GAUSTADALLEE OSLO	28,00
 		 */
 		//	First token is interest date, stored to use if date is not given in comment
 		token = xstrtok(input, "	");
@@ -615,7 +609,7 @@ int read_SBS(FILE *fp, sqlite3 *database)
 		#if DEBUG
 		fprintf(stderr, "%s\n", insert_into);
 		#endif
-		//	Prompts user if information is to be added. 
+		//	Prompts user if information is to be added.
 		printf("---\n-'%s', '%s', %s\nAdd? (y/n/q): ", insert.date, insert.comment, insert.amount);
 		scanf("%c", &correct);
 		clean_stdin();
@@ -661,16 +655,15 @@ int read_SBS(FILE *fp, sqlite3 *database)
 int update(char *command, sqlite3 *database)
 {
 	int updated = 0, sql_len, len;
-	char	*commandhelp = calloc(1, sizeof(char) * COMMAND_LEN),	//	to store usage-help
-			*select = calloc(1, sizeof(char) * SELECT_LEN) ,	//	used by sql-queries
-			*comment = calloc(1, sizeof(char) * COMMENT_LEN),	//	to store comments
-			*type = calloc(1, sizeof(char) * TYPE_LEN),	//	to store types
-			*amount = calloc(1, sizeof(char) * AMOUNT_LEN),	//	to store amounts
+	char	commandhelp[COMMAND_LEN],	//	to store usage-help
+			select[SELECT_LEN] ,	//	used by sql-queries
+			comment[COMMENT_LEN],	//	to store comments
+			type[TYPE_LEN],	//	to store types
+			amount[AMOUNT_LEN],	//	to store amounts
 			*day, *zErrMsg, correct;	//	helpful
+	if (commandhelp == NULL || select == NULL)	return -1;	//	fail-safe
 	//	allocating space for id from rownumbers
 	UNIQUE_ID = calloc(1, sizeof(char) * ID_LEN);
-	if (commandhelp == NULL || select == NULL)	return -1;	//	fail-safe
-	(*commandhelp) = '\0'; (*select) = '\0';	//	default start
 	P_COUNTER = calloc(1, sizeof(int));
 	do {
 		snprintf(commandhelp, COMMAND_LEN, "day in month (%s)", MONTH);
@@ -689,7 +682,7 @@ int update(char *command, sqlite3 *database)
 		}
 		if (*P_COUNTER > 1) {
 			//	give user ability to divide/update entries
-			day = calloc(1, sizeof(char) * 3); 
+			day = calloc(1, sizeof(char) * 3);
 			snprintf(day, 3, "%02d", atoi(command));
 			len = get_update_command(command, "number to update"); command[len-1] = '\0';
 			#if DEBUG
@@ -822,10 +815,5 @@ int update(char *command, sqlite3 *database)
 	}	while ((strncmp(command, "e\0", 2) != 0) && (strncmp(command, "end\0", 4) != 0));
 	free(P_COUNTER);
 	free(UNIQUE_ID);
-	free(commandhelp);
-	free(comment);
-	free(type);
-	free(amount);
-	free(select); 
 	return updated;
 }

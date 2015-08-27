@@ -145,7 +145,7 @@ int main(int argc, char **argv)
 }
 
 /*
- *	Saves current configuration to 'config.ini'
+ *	Saves current configuration to 'config.ini' 
  */
 void save_config(char *command, sqlite3 *database)
 {
