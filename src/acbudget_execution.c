@@ -668,7 +668,26 @@ int update(char *command, sqlite3 *database)
 	do {
 		snprintf(commandhelp, COMMAND_LEN, "day in month (%s)", MONTH);
 		len = get_update_command(command, commandhelp);
+		//	Check if user wants to quit
 		if ((strncmp(command, "e\0", 2) == 0) || (strncmp(command, "end\0", 4) == 0))	break;
+		//	Check if user wants to change month
+		else if ((strncmp(command, "month=", 6) == 0) || (strncmp(command, "month = ", 6) == 0)) {
+			while ((*command) != '=') command++;	//	move to month token
+			len = atoi(++command);	//	store month integer (if any)
+			if (len < 1)	printf("Illegal month input: %s\n", command);
+			else if (len > 12)	printf("Month (%d) higher than 12\n", len);
+			else	sprintf(MONTH, "%02d", len);	//	store new month
+			continue;	//	and fetch next input
+		}
+		len = atoi(command);	//	fetch user input as integer
+		if (len < 1) {	//	illegal input
+			printf("Illegal month input: %s\n", command);
+			continue;
+		}
+		else if (len > 12) {	//	not more than 12 months
+			printf("Month (%d) higher than 12", len);
+			continue;
+		}
 		//	find entries based on day of month
 		snprintf(select, SELECT_LEN, "select comment, amount, type from %s where date = '%04d-%02d-%02d'", TABLE, atoi(YEAR), atoi(MONTH), atoi(command));
 		#if DEBUG
