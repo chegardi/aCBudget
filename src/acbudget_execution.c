@@ -669,6 +669,11 @@ int update(char *command, sqlite3 *database)
 		snprintf(commandhelp, COMMAND_LEN, "day in month (%s)", MONTH);
 		len = get_update_command(command, commandhelp);
 		if ((strncmp(command, "e\0", 2) == 0) || (strncmp(command, "end\0", 4) == 0))	break;
+		else if (strncmp(command, "month=", 6) == 0) {
+		    while ((*command) != '=') command++;
+		    strncpy(MONTH, ++command, 2);
+		    continue;
+		}
 		//	find entries based on day of month
 		snprintf(select, SELECT_LEN, "select comment, amount, type from %s where date = '%04d-%02d-%02d'", TABLE, atoi(YEAR), atoi(MONTH), atoi(command));
 		#if DEBUG
