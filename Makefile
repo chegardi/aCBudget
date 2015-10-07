@@ -1,6 +1,6 @@
 CC=gcc
 CFLAGS=-c
-DFLAGS=-c -DDEBUG
+DFLAGS=-c -g -DDEBUG
 
 DEP=src/*.h
 SRC=src/*.c
@@ -18,6 +18,9 @@ obj: $(SRC) $(DEP)
 	mkdir -p obj
 	mv -f *.o obj/
 
+dsql: SRC=$(SQLSRC)
+dsql: debug
+
 sql: SRC=$(SQLSRC)
 sql: all
 
@@ -29,5 +32,5 @@ remove:
 redo: remove all
 
 clean:
-	rm aCBudget
 	rm -r obj
+	rm aCBudget

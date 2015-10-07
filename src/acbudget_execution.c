@@ -477,7 +477,7 @@ int read_DNB(FILE *fp, sqlite3 *database)
 		 *	I recommend to delete lines added manually until I implement
 		 *	automatic deletion from file after insertion
 		 */
-		printf("---\n-'%s', '%s', %s\nAdd? (y/n/q): ", insert.date, insert.comment, insert.amount);
+		printf("---END-ROWS---\n-'%s', '%s', %s\nAdd? (y/n/q): ", insert.date, insert.comment, insert.amount);
 		scanf("%c", &correct);
 		clean_stdin();
 		if (correct == 'q') {
@@ -610,7 +610,7 @@ int read_SBS(FILE *fp, sqlite3 *database)
 		fprintf(stderr, "%s\n", insert_into);
 		#endif
 		//	Prompts user if information is to be added.
-		printf("---\n-'%s', '%s', %s\nAdd? (y/n/q): ", insert.date, insert.comment, insert.amount);
+		printf("---END-ROWS---\n-'%s', '%s', %s\nAdd? (y/n/q): ", insert.date, insert.comment, insert.amount);
 		scanf("%c", &correct);
 		clean_stdin();
 		if (correct == 'y') {
@@ -661,7 +661,6 @@ int update(char *command, sqlite3 *database)
 			type[TYPE_LEN],	//	to store types
 			amount[AMOUNT_LEN],	//	to store amounts
 			*day, *zErrMsg, correct;	//	helpful
-	if (commandhelp == NULL || select == NULL)	return -1;	//	fail-safe
 	//	allocating space for id from rownumbers
 	UNIQUE_ID = calloc(1, sizeof(char) * ID_LEN);
 	P_COUNTER = calloc(1, sizeof(int));
@@ -670,8 +669,15 @@ int update(char *command, sqlite3 *database)
 		len = get_update_command(command, commandhelp);
 		if ((strncmp(command, "e\0", 2) == 0) || (strncmp(command, "end\0", 4) == 0))	break;
 		else if (strncmp(command, "month=", 6) == 0) {
-		    while ((*command) != '=') command++;
-		    strncpy(MONTH, ++command, 2);
+		    int i = 0;
+		    while ((command[i]) != '=') i++; // move pointer to number
+		    len = strtol(command+i+1, &command, 10);
+		    if (len > 0 && len < 13) {
+			(*MONTH)=0;
+			snprintf(MONTH, 3, "%02d", len);
+		    }
+		    else
+			printf("Invalid month range: %d\n", len);
 		    continue;
 		}
 		//	find entries based on day of month
