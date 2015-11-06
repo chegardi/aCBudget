@@ -17,7 +17,8 @@ Database must be set up beforehand in current state. Also, be careful not to del
 * Smartphone capability
 
 ## Setup:
-- See 'detailed_readme'.txt or use the accompanying Makefile (run 'make sql' if first time, then use 'make' if you've changed the code)
+* See 'detailed_readme'.txt or use the accompanying Makefile (run 'make sql' if first time, then use 'make' if you've changed the code)
+* If you do not have a database, the program will create one according to 'config.ini' *or* when first time launching *without* the 'config.ini' file it will create the database 'regnskap.db'.
 
 ## SQLite
 See [their webpage](http://www.sqlite.org/ "SQLite.org") for download/interface and information on SQLite. I have now added the folder 'sql/' with the required files - but be sure to spread the word of SQLite and their awesome work!

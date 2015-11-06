@@ -1,7 +1,7 @@
 #include "acbudget.h"
 
 /*
- *	To us instead of fflush(stdin)
+ *	To use instead of fflush(stdin)
  */
 void clean_stdin(void)
 {

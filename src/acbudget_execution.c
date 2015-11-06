@@ -87,7 +87,7 @@ char *config_command(char *command, sqlite3 *database)
 				else if (strncmp(variable, "database\0", 9) == 0) {
 					int retval = sqlite3_close(database);
 					if (retval == SQLITE_OK) {
-						printf("retval (%d) ?= SQLITE_OK (%d) = true\n", retval, SQLITE_OK);
+//						printf("retval (%d) ?= SQLITE_OK (%d) = true\n", retval, SQLITE_OK);
 						if (sqlite3_open(value, &database) != SQLITE_OK) {	//	database could not be opened
 							fprintf(stderr, "Failed to open database (%s). SQLError-message: %s\nTrying to open old database...", value, sqlite3_errmsg(database));
 							if (sqlite3_open(DATABASE, &database) != SQLITE_OK) {		//	old database could not be opened
@@ -105,7 +105,7 @@ char *config_command(char *command, sqlite3 *database)
 						}
 					}
 					else printf("Could not change database to '%s', try again\n", value);
-					printf("retval (%d) ?= SQLITE_OK (%d) = false?\n", retval, SQLITE_OK);
+//					printf("retval (%d) ?= SQLITE_OK (%d) = false?\n", retval, SQLITE_OK);
 				}
 				else if (strncmp(variable, "read\0", 5) == 0) {
 					(*READ_COUNTER) = atoi(value);
@@ -414,7 +414,8 @@ int read_DNB(FILE *fp, sqlite3 *database)
 		 *	to get budgeted correctly when summing in database.
 		 */
 		token = strstr(input, "\"\"");
-		error = strlen(token);
+		if (token)
+			error = strlen(token);
 		#if DEBUG
 		fprintf(stderr, "split token: %s\n", token);
 		#endif
@@ -668,19 +669,33 @@ int update(char *command, sqlite3 *database)
 		snprintf(commandhelp, COMMAND_LEN, "day in month (%s)", MONTH);
 		len = get_update_command(command, commandhelp);
 		if ((strncmp(command, "e\0", 2) == 0) || (strncmp(command, "end\0", 4) == 0))	break;
+		else if (command[1] == '.' || command[2] == '.') {
+		    int i = 1;
+		    while (command[i] != '.') i++;
+		    command[i] = 0;
+		    int month = strtol(command+i+1, &command+i+1, 10);
+		    if (month > 0 && month < 13) {
+			(*MONTH)=0;
+			snprintf(MONTH, 3, "%02d", month);
+		    }
+		    else {
+			printf("Month outside range 1-12: %d\n", month);
+			continue;
+		    }
+		}
 		else if (strncmp(command, "month=", 6) == 0) {
 		    int i = 0;
-		    while ((command[i]) != '=') i++; // move pointer to number
-		    len = strtol(command+i+1, &command, 10);
+		    len = strtol(command+6, &command, 10);
 		    if (len > 0 && len < 13) {
 			(*MONTH)=0;
 			snprintf(MONTH, 3, "%02d", len);
 		    }
 		    else
-			printf("Invalid month range: %d\n", len);
+			printf("Month outside range 0-12: %d\n", len);
 		    continue;
 		}
 		//	find entries based on day of month
+		
 		snprintf(select, SELECT_LEN, "select comment, amount, type from %s where date = '%04d-%02d-%02d'", TABLE, atoi(YEAR), atoi(MONTH), atoi(command));
 		#if DEBUG
 		fprintf(stdout, "Running select on %s: '%s'\n", DATABASE, select);
