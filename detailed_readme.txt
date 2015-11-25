@@ -68,7 +68,7 @@ There must be some time inbetween each insertion. As all insertions are inserted
 
 *
 $	aCBudget.update >
-Here you can update a row with either combination of new comment, type and/or amount. Immediately after it is possible to add another row with same date, but new comment, type and amount. You are only able to type the day within 'update' command. If a switch in month is required, look at 'config' section.
+Here you can update a row with either combination of new comment, type and/or amount. Immediately after it is possible to add another row with same date, but new comment, type and amount. You are only able to type the day within 'update' command. If a switch in month is desired, execute 'month=x', where 'x' is a number between 1 (january) and 12 (december)
 
 *
 $	aCBudget.stats >
@@ -109,7 +109,7 @@ $	aCBudget.config > revert (rv)
 Reverts backup database to current database - canceling all executions since last backup.
 $	aCBudget.config > help (h)
 Shows a list of commands within 'aCBudget.config', their abbreviations and some explanations.
-Commands marked with '^' are able to be redefined by typing the variablename followed by '=' and the new value. Ie. 'month=02' would change the current value of month to '02'.
+Commands marked with '^' are able to be redefined by typing the variablename followed by '=' and the new value. Ie. 'month=2' would change the current value of month to '02'.
 $ When changing database with the 'database=newdatabase.filetype', the program also closes previous database and tries to open the new database. If unsuccessful, it reopens old database with notification to user.
 
 *
@@ -130,9 +130,9 @@ Shows the current list of commands explained over, with a short explanation.
 SQL database setup:
 How your database should look like:
 
-File: regnskap.db
+File: regnskap.db (the program creates this file by default)
 
-SQL Table statement;
+Go to 'select' command and run the following SQL statement;
 ```
 create table r2014 (
 	date date,
