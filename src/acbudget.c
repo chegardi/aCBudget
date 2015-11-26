@@ -99,7 +99,7 @@ int configurate(char *command)
  */
 int main(int argc, char **argv)
 {
-	sqlite3 *database = 0;
+	database = 0;
 	char *zErrMsg = 0, command[COMMAND_LEN] = "\0", *printout = 0;
 	int rc = 0, len = 0;
 	/*

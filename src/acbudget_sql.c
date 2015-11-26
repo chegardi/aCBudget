@@ -35,6 +35,23 @@ int easy_execute_sql(int argc, char **argv)
 }
 
 /*
+ * Executes the sql-query
+ */
+int regular_execute_sql(char *query)
+{
+	if ( sqlite3_exec(database, query, callback, 0, &zErrMsg) != SQLITE_OK ) {
+		fprintf(stderr, "SQL error: %s\n", zErrMsg);
+		sqlite3_free(zErrMsg);
+		return 0; // NOT OK
+	} else {
+    #if DEBUG
+		printf("%s\n", query);
+    #endif
+	}
+	return 1; // OK
+}
+
+/*
  *	insert command
  *	Used for standardized insertions to database
  */

@@ -59,6 +59,21 @@ char* copy_date(char *date, char *token)
 	return date;
 }
 
+
+/*
+ * Checks if input is one of either correct values
+ */
+char correct_input(char in, char *correct)
+{
+	while ((*correct) != 0) {
+		if ((*correct) == in) {
+			return in;
+		}
+		correct++;
+	}
+	return 0;
+}
+
 /*
  *	Frees all allocated pre-defined pointers if needed.
  */

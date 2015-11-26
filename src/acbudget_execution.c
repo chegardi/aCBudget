@@ -176,7 +176,7 @@ int get_update_command(char *command, char *command_text)
 char *myselect(char *command, sqlite3 *database)
 {
 	int len, counter = 0;
-	char *select = calloc(1, sizeof(char) * SELECT_LEN), *zErrMsg, execute;
+	char *select = calloc(1, sizeof(char) * SELECT_LEN), execute;
 	if (select == NULL) {
 		snprintf(command, COMMAND_LEN, "Error allocating memory for operation");
 	}
@@ -193,10 +193,7 @@ char *myselect(char *command, sqlite3 *database)
 				#ifdef DEBUG
 				fprintf(stderr, "sql statement: '%s'\n", select);
 				#endif
-				if ( sqlite3_exec(database, select, callback, 0, &zErrMsg) != SQLITE_OK) {
-					fprintf(stderr, "SQL error: %s\n", zErrMsg);
-					sqlite3_free(zErrMsg);
-				} else {
+				if (regular_execute_sql(select)) {
 					counter++;
 				}
 			}
@@ -217,8 +214,7 @@ int print_stats(char *command, sqlite3 *database)
 			len = -1,
 			execution = -1,
 			max_commands = print_stats_help();
-	char	select[SELECT_LEN],
-			*zErrMsg;
+	char	select[SELECT_LEN];
 	do {
 		/*	prompt user for command	*/
 		len = get_command(command, "stats");
@@ -229,31 +225,20 @@ int print_stats(char *command, sqlite3 *database)
 		else if (execution > 0 && execution <= max_commands) {
 			if (execution == 1) {
 				snprintf(select, SELECT_LEN, "select type, sum(amount) as Balance from %s group by type order by type", TABLE);
-				if ( sqlite3_exec(database, select, callback, 0, &zErrMsg) != SQLITE_OK) {
-					fprintf(stderr, "SQL error %d - %s\n", sqlite3_errcode(database), sqlite3_errmsg(database));
-					sqlite3_free(zErrMsg);
-				}
+				regular_execute_sql(select);
 				snprintf(select, SELECT_LEN, "select sum(amount) as Total from %s", TABLE);
-				if ( sqlite3_exec(database, select, callback, 0, &zErrMsg) != SQLITE_OK) {
-					fprintf(stderr, "SQL error: %s\n", zErrMsg);
-					sqlite3_free(zErrMsg);
-				}
+				regular_execute_sql(select);
 			}
 			else if (execution == 2) {
 				printf("Select month 1-12: ");
 				len = strlen(fgets(command, COMMAND_LEN, stdin)); command[len-1] = '\0';
 				int month = atoi(command);
 				if (0 < month && month <= 12) {
-					snprintf(select, SELECT_LEN, "select type, sum(amount) as Forbruk from %s where date > '%4s-%02d-00' and date < '%4s-%02d-32' group by type order by type", TABLE, YEAR, month, YEAR, month);
-					if ( sqlite3_exec(database, select, callback, 0, &zErrMsg) != SQLITE_OK) {
-						fprintf(stderr, "SQL error: %s\n", zErrMsg);
-						sqlite3_free(zErrMsg);
-					}
+					snprintf(select, SELECT_LEN, "select type, sum(amount) as Forbruk from %s where date > '%4s-%02d-00' and date < '%4s-%02d-32' group by type order by type",
+					         TABLE, YEAR, month, YEAR, month);
+					regular_execute_sql(select);
 					snprintf(select, SELECT_LEN, "select sum(amount) as Total from %s where date > '%4s-%02d-00' and date < '%4s-%02d-32'", TABLE, YEAR, month, YEAR, month);
-					if ( sqlite3_exec(database, select, callback, 0, &zErrMsg) != SQLITE_OK) {
-						fprintf(stderr, "SQL error: %s\n", zErrMsg);
-						sqlite3_free(zErrMsg);
-					}
+					regular_execute_sql(select);
 				}
 				else	printf("Illegal value; '%s', entered. Must be a number between 1-12\n", command);
 			}
@@ -266,15 +251,9 @@ int print_stats(char *command, sqlite3 *database)
 					#ifdef DEBUG
 					fprintf(stderr, "command: %s\nmonth: %02d\nselect: %s\n--------\n", command, month, select);
 					#endif
-					if ( sqlite3_exec(database, select, callback, 0, &zErrMsg) != SQLITE_OK) {
-						fprintf(stderr, "SQL error: %s\n", zErrMsg);
-						sqlite3_free(zErrMsg);
-					}
+					regular_execute_sql(select);
 					snprintf(select, SELECT_LEN, "select sum(amount) as Total from %s where date < '%4s-%02d-32' and date > '%4s-%02d-00'", TABLE, YEAR, month, YEAR, month);
-					if ( sqlite3_exec(database, select, callback, 0, &zErrMsg) != SQLITE_OK) {
-						fprintf(stderr, "SQL error: %s\n", zErrMsg);
-						sqlite3_free(zErrMsg);
-					}
+					regular_execute_sql(select);
 				}
 				else	printf("Illegal value; '%s', entered. Must be a number between 1-12\n", command);
 			}
@@ -287,18 +266,12 @@ int print_stats(char *command, sqlite3 *database)
 					fprintf(stderr, "%02d month = '%s'\n", month_digit, months);
 					fprintf(stderr, "select : '%s'\n", select);
 					#endif
-					if ( sqlite3_exec(database, select, callback, 0, &zErrMsg) != SQLITE_OK ) {
-						fprintf(stderr, "SQL error: %s\n", zErrMsg);
-						sqlite3_free(zErrMsg);
-					}
+					regular_execute_sql(select);
 					while ((*months) != 0)	months++;
 					months++;
 				}
 				snprintf(select, SELECT_LEN, "select sum(amount) as Total from %s", TABLE);
-				if ( sqlite3_exec(database, select, callback, 0, &zErrMsg) != SQLITE_OK ) {
-					fprintf(stderr, "SQL error: %s\n", zErrMsg);
-					sqlite3_free(zErrMsg);
-				}
+				regular_execute_sql(select);
 			}
 			stats_cnt ++;
 		}
@@ -384,13 +357,15 @@ int read_DNB(FILE *fp, sqlite3 *database)
 	#if DEBUG
 	fprintf(stderr, "read DNB\n");
 	#endif
-	int counter = 0, error, lines = 0;
-	char correct,
-			input[INPUT_LEN],				//	input lines
-			insert_into[INSERT_LEN],	//	insert into statement
-			*token,									//	tokens from input
-			*zErrMsg;							//	used in errors from SQLite
-	INSERT	insert;							//	struct with all variables of an insert as members
+	int counter = 0, error=0, lines = 0;
+	char singleInput,               //  input from user
+		*correct,                   //  legal input values
+		input[INPUT_LEN],			//	input lines
+		insert_into[INSERT_LEN],	//	insert into statement
+		*token;						//	tokens from input
+	INSERT	insert;					//	struct with all variables of an insert as members
+	correct = calloc(4, sizeof(char));
+	strncpy(correct, "ynq", 3);
 	while (fgets(input, INPUT_LEN, fp) != NULL) {
 		lines++;
 		if (strlen(input) <= 1)	continue;	//	empty line
@@ -461,11 +436,9 @@ int read_DNB(FILE *fp, sqlite3 *database)
 		printf("---Rows on same date:\n");
 		snprintf(insert_into, INSERT_LEN, "select * from %s where date like '%s';", TABLE, insert.date);
 		//	Execute sql select statement
-		if ( sqlite3_exec(database, insert_into, callback, 0, &zErrMsg) != SQLITE_OK) {
-			fprintf(stderr, "SQL error: %s\n", zErrMsg);
-			sqlite3_free(zErrMsg);
-		}
-		#if DEBUG
+		regular_execute_sql(select);
+
+        #if DEBUG
 		fprintf(stderr, "%s\n", insert_into);
 		#endif
 		/*
@@ -479,13 +452,18 @@ int read_DNB(FILE *fp, sqlite3 *database)
 		 *	automatic deletion from file after insertion
 		 */
 		printf("---END-ROWS---\n-'%s', '%s', %s\nAdd? (y/n/q): ", insert.date, insert.comment, insert.amount);
-		scanf("%c", &correct);
+		scanf("%c", &singleInput);
 		clean_stdin();
-		if (correct == 'q') {
+		while (!correct_input(singleInput, correct)) {
+			printf("Please answer either of: %s\nAdd? ", correct);
+			scanf("%c", &singleInput);
+			clean_stdin();
+		}
+		if (singleInput == 'q') {
 			lines--;
 			break;
 		}
-		else if (correct == 'y') {
+		else if (singleInput == 'y') {
 			// Add comment
 			printf("Comment: ");
 			fgets(insert.comment, COMMENT_LEN, stdin);
@@ -502,18 +480,13 @@ int read_DNB(FILE *fp, sqlite3 *database)
 			fprintf(stderr, "%s\n", insert_into);
 			#endif
 			//	Execute SQL insertion statement
-			if ( sqlite3_exec(database, insert_into, callback, 0, &zErrMsg) != SQLITE_OK ) {
-				fprintf(stderr, "SQL error: %s\n", zErrMsg);
-				sqlite3_free(zErrMsg);
-				return;
-			} else {
-				#if DEBUG
-				printf("%s\n", insert_into);
-				#endif
+			if (!regular_execute_sql(insert_into)) {
+				return -1;
 			}
 			counter++;
 		}
 	}
+	free(correct);
 	(*READ_COUNTER) = lines;
 	return counter;	// Insertions made
 }
@@ -529,15 +502,16 @@ int read_SBS(FILE *fp, sqlite3 *database)
 	fprintf(stderr, "read SBS\n");
 	#endif
 	int counter = 0, error, lines = 0;
-	char	correct,
-			input[INPUT_LEN],					//	input
-			insert_into[INSERT_LEN],		//	insert into statemtn
-			dateday[3],								//	dd daydate
-			datemonth[3],							//	mm monthdate
-			*token,										//	tokens from input
-			*datetoken,								//	used to temporarily store date elements from token
-			*zErrMsg;								//	used in errors from SQLite
+	char singleInput, *correct,
+		input[INPUT_LEN],					//	input
+		insert_into[INSERT_LEN],		//	insert into statemtn
+		dateday[3],								//	dd daydate
+		datemonth[3],							//	mm monthdate
+		*token,										//	tokens from input
+		*datetoken;								//	used to temporarily store date elements from token
 	INSERT insert;
+	correct = calloc(4, sizeof(char));
+	strncpy(correct, "ynq", 4);
 	while (fgets(input, INPUT_LEN, fp) != NULL)	{	//	while file has input
 		lines++;
 		if (strlen(input) <= 1)	continue;	//	empty line
@@ -603,18 +577,20 @@ int read_SBS(FILE *fp, sqlite3 *database)
 		//	All information gathered, check for equal date in database
 		printf("---Rows on same date:\n");
 		snprintf(insert_into, INSERT_LEN, "select * from %s where date like '%s';", TABLE, insert.date);
-		if ( sqlite3_exec(database, insert_into, callback, 0, &zErrMsg) != SQLITE_OK) {
-			fprintf(stderr, "SQL error: %s\n", zErrMsg);
-			sqlite3_free(zErrMsg);
-		}
+		regular_execute_sql(select);
 		#if DEBUG
 		fprintf(stderr, "%s\n", insert_into);
 		#endif
 		//	Prompts user if information is to be added.
 		printf("---END-ROWS---\n-'%s', '%s', %s\nAdd? (y/n/q): ", insert.date, insert.comment, insert.amount);
-		scanf("%c", &correct);
+		scanf("%c", &singleInput);
 		clean_stdin();
-		if (correct == 'y') {
+		while (!correct_input(singleInput, correct)) {
+			printf("\rPlease answer either: %s\n", correct);
+			scanf("%c", &singleInput);
+			clean_stdin();
+		}
+		if (singleInput == 'y') {
 			//	Replace comment
 			printf("New comment: ");
 			fgets(insert.comment, COMMENT_LEN, stdin);
@@ -631,17 +607,13 @@ int read_SBS(FILE *fp, sqlite3 *database)
 			#ifdef DEBUG
 			fprintf(stderr, "inserted '%s'\n", insert_into);
 			#endif
-			if ( sqlite3_exec(database, insert_into, callback, 0, &zErrMsg) != SQLITE_OK ) {
-				fprintf(stderr, "SQL error: %s\n", zErrMsg);
-				sqlite3_free(zErrMsg);
-				return;
-			}
+			regular_execute_sql(select);
 			counter++;
-		} else if (correct == 'n') {
+		} else if (singleInput == 'n') {
 			#if DEBUG
 			fprintf(stderr, "Values NOT added.\n");
 			#endif
-		} else if (correct == 'q') {
+		} else if (singleInput == 'q') {
 			lines--;
 			break;
 		}
@@ -661,7 +633,7 @@ int update(char *command, sqlite3 *database)
 			comment[COMMENT_LEN],	//	to store comments
 			type[TYPE_LEN],	//	to store types
 			amount[AMOUNT_LEN],	//	to store amounts
-			*day, *zErrMsg, correct;	//	helpful
+			*day, correct;	//	helpful
 	//	allocating space for id from rownumbers
 	UNIQUE_ID = calloc(1, sizeof(char) * ID_LEN);
 	P_COUNTER = calloc(1, sizeof(int));
@@ -702,11 +674,7 @@ int update(char *command, sqlite3 *database)
 		fprintf(stdout, "Running select on %s: '%s'\n", DATABASE, select);
 		#endif
 		(*P_COUNTER) = 1;	//	reset row count
-		if ( sqlite3_exec(database, select, numbered_callback, 0, &zErrMsg) != SQLITE_OK) {
-			fprintf(stderr, "SQL error: %s\n", zErrMsg);
-			sqlite3_free(zErrMsg);
-			return -1;
-		}
+		regular_execute_sql(select);
 		if (*P_COUNTER > 1) {
 			//	give user ability to divide/update entries
 			day = calloc(1, sizeof(char) * 3);
@@ -825,9 +793,7 @@ int update(char *command, sqlite3 *database)
 					//	insert into TABLE values (DATE, COMMENT, TYPE, AMOUNT, ID);
 					snprintf(select, SELECT_LEN, "insert into %s values('%04d-%02d-%02d', '%s', '%s', %s, '%s');",
 						TABLE, atoi(YEAR), atoi(MONTH), atoi(day), comment, type, amount, UNIQUE_ID);
-					if (sqlite3_exec(database, select, NULL, 0, &zErrMsg) != SQLITE_OK) {
-						fprintf(stderr, "SQL error %s\n", zErrMsg);
-						sqlite3_free(zErrMsg);
+					if (!regular_execute_sql(select)) {
 						free(day);
 						break;
 					}

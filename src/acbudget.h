@@ -1,16 +1,16 @@
-//	standard libraries
+//  standard libraries
 #include<stdio.h>
 #include<stdlib.h>
 #include<string.h>
 #include<errno.h>
 
-//	aCBudget libraries
+//  aCBudget libraries
 #include "acbudget_sql.h"
 #include "acbudget_utilities.h"
 #include "acbudget_execution.h"
 
-//	pre-defined constants
-#define AMOUNT_LEN 16		//	amounts bigger than 100000000000000 would be great - as income
+//  pre-defined constants
+#define AMOUNT_LEN 16       //  amounts bigger than 100000000000000 would be great - as income
 #define COMMAND_LEN 256		//	regular length
 #define COMMENT_LEN 101		//	max length of comment is 100 + \0
 #define DATE_LEN 11			//	length of date: YYYY-MM-DD\0 = 11 chars
@@ -31,14 +31,17 @@ typedef struct insert {
 }	INSERT;
 
 //	database variables
+sqlite3 *database;
 char	*DATABASE, 
 		*TABLE , 
 		*MONTH,
 		*YEAR,
 		*CONFIG_FILENAME,
 		*BACKUP_FILENAME;
+
 //	utility variables
-char	*UNIQUE_ID;
+char	*UNIQUE_ID,
+	    *zErrMsg;
 int 	*P_COUNTER,
 		*READ_COUNTER;
 
