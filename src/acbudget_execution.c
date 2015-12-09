@@ -436,7 +436,7 @@ int read_DNB(FILE *fp, sqlite3 *database)
 		printf("---Rows on same date:\n");
 		snprintf(insert_into, INSERT_LEN, "select * from %s where date like '%s';", TABLE, insert.date);
 		//	Execute sql select statement
-		regular_execute_sql(select);
+		regular_execute_sql(insert_into);
 
         #if DEBUG
 		fprintf(stderr, "%s\n", insert_into);
@@ -512,6 +512,7 @@ int read_SBS(FILE *fp, sqlite3 *database)
 	INSERT insert;
 	correct = calloc(4, sizeof(char));
 	strncpy(correct, "ynq", 4);
+
 	while (fgets(input, INPUT_LEN, fp) != NULL)	{	//	while file has input
 		lines++;
 		if (strlen(input) <= 1)	continue;	//	empty line
@@ -519,6 +520,7 @@ int read_SBS(FILE *fp, sqlite3 *database)
 			(*READ_COUNTER)--;
 			continue;
 		}
+		
 		/*
 		 *	This is input format of SBS files. Separations
 		 *	is tabulated, and not spaced.
@@ -537,7 +539,8 @@ int read_SBS(FILE *fp, sqlite3 *database)
 		fprintf(stderr, "Comment: %s\n", token);
 		#endif
 		strncpy(insert.comment, token, COMMENT_LEN);
-		/*
+
+        /*
 		 *	Explanation may contain date in beginning
 		 *	which will be date of purchase (my budget date)
 		 *	first datetoken is then the DAY
@@ -560,6 +563,7 @@ int read_SBS(FILE *fp, sqlite3 *database)
 			copy_date(insert.date, datetoken);
 			free(datetoken);
 		}
+		
 		//	Last token is amount
 		token = xstrtok(NULL, "	");
 		if (strlen(token) > 1) {
@@ -574,13 +578,15 @@ int read_SBS(FILE *fp, sqlite3 *database)
 		#if DEBUG
 		fprintf(stderr, "amount: %s\n", token);
 		#endif
+		
 		//	All information gathered, check for equal date in database
 		printf("---Rows on same date:\n");
 		snprintf(insert_into, INSERT_LEN, "select * from %s where date like '%s';", TABLE, insert.date);
-		regular_execute_sql(select);
+		regular_execute_sql(insert_into);
 		#if DEBUG
 		fprintf(stderr, "%s\n", insert_into);
 		#endif
+		
 		//	Prompts user if information is to be added.
 		printf("---END-ROWS---\n-'%s', '%s', %s\nAdd? (y/n/q): ", insert.date, insert.comment, insert.amount);
 		scanf("%c", &singleInput);
@@ -590,6 +596,7 @@ int read_SBS(FILE *fp, sqlite3 *database)
 			scanf("%c", &singleInput);
 			clean_stdin();
 		}
+		
 		if (singleInput == 'y') {
 			//	Replace comment
 			printf("New comment: ");
@@ -607,7 +614,9 @@ int read_SBS(FILE *fp, sqlite3 *database)
 			#ifdef DEBUG
 			fprintf(stderr, "inserted '%s'\n", insert_into);
 			#endif
-			regular_execute_sql(select);
+			if (!regular_execute_sql(insert_into)) {
+				return -1;
+			}
 			counter++;
 		} else if (singleInput == 'n') {
 			#if DEBUG
@@ -640,6 +649,7 @@ int update(char *command, sqlite3 *database)
 	do {
 		snprintf(commandhelp, COMMAND_LEN, "day in month (%s)", MONTH);
 		len = get_update_command(command, commandhelp);
+
 		//	Check if user wants to quit
 		if ((strncmp(command, "e\0", 2) == 0) || (strncmp(command, "end\0", 4) == 0))	break;
 		else if (command[1] == '.' || command[2] == '.') {
@@ -667,15 +677,18 @@ int update(char *command, sqlite3 *database)
 			printf("Month outside range 0-12: %d\n", len);
 		    continue;
 		}
-		//	find entries based on day of month
-		
-		snprintf(select, SELECT_LEN, "select comment, amount, type from %s where date = '%04d-%02d-%02d'", TABLE, atoi(YEAR), atoi(MONTH), atoi(command));
+
+        //	find entries based on day of month
+		snprintf(select, SELECT_LEN,
+		         "select comment, amount, type from %s where date = '%04d-%02d-%02d'",
+		         TABLE, atoi(YEAR), atoi(MONTH), atoi(command));
 		#if DEBUG
 		fprintf(stdout, "Running select on %s: '%s'\n", DATABASE, select);
 		#endif
 		(*P_COUNTER) = 1;	//	reset row count
 		regular_execute_sql(select);
 		if (*P_COUNTER > 1) {
+
 			//	give user ability to divide/update entries
 			day = calloc(1, sizeof(char) * 3);
 			snprintf(day, 3, "%02d", atoi(command));
@@ -685,15 +698,20 @@ int update(char *command, sqlite3 *database)
 			#endif
 			len = atoi(command);
 			if ((strncmp(command, "n\0", 2)!=0) && ((( len < 1) ) || (len >= (*P_COUNTER))))
-				printf("Invalid input: '%s', either pick number in range %d-%d or 'n' for none\n", command, 1, ((*P_COUNTER)-1));
+				printf("Invalid input: '%s', either pick number in range %d-%d or 'n' for none\n",
+				       command, 1, ((*P_COUNTER)-1));
 			else if (strncmp(command, "n\0", 2) != 0) {
 				(*P_COUNTER) = atoi(command);
+
 				//	row selected for update
 				#if DEBUG
 				fprintf(stderr, "Finding rownumber %d (P_COUNTER: %d)\n", len, (*P_COUNTER));
 				#endif
-				len = snprintf(select, SELECT_LEN, "select id from %s where date = '%04d-%02d-%02d'", TABLE, atoi(YEAR), atoi(MONTH), atoi(day));
-				//	prepare statement to find correct row for update
+				len = snprintf(select, SELECT_LEN,
+				               "select id from %s where date = '%04d-%02d-%02d'",
+				               TABLE, atoi(YEAR), atoi(MONTH), atoi(day));
+
+                //	prepare statement to find correct row for update
 				sqlite3_stmt **statement = calloc(1, 1* sizeof( sqlite3_stmt *));
 				if (sqlite3_prepare_v2(database, select, len, statement, NULL) != SQLITE_OK) {
 					fprintf(stderr, "SQL prepare error from '%s': %s\nContact system creator\n", select, zErrMsg);
@@ -732,6 +750,7 @@ int update(char *command, sqlite3 *database)
 				fprintf(stderr, "\nCopying unique id into UNIQUE_ID\n");
 				#endif
 				strncpy(UNIQUE_ID, sqlite3_column_text((*statement), 0), ID_LEN);
+
 				/*
 				 *	Prompts user for input on all three values COMMENT, TYPE and AMOUNT.
 				 *	Date is currently not available for update.
@@ -742,7 +761,8 @@ int update(char *command, sqlite3 *database)
 				(*P_COUNTER) = sql_len;
 				len = get_update_command(comment, "comment"); comment[len-1] = '\0';
 				if (len > 1) {	//	comment is to be updated
-					sql_len += snprintf(select+sql_len, SELECT_LEN-sql_len, " comment = '%s'", comment);
+					sql_len += snprintf(select+sql_len, SELECT_LEN-sql_len,
+					                    " comment = '%s'", comment);
 				}
 				len = get_update_command(type, "type"); type[len-1] = '\0';
 				if (len > 1) {	//	type is to be updated
@@ -764,14 +784,16 @@ int update(char *command, sqlite3 *database)
 					#endif
 				}
 				#if DEBUG
-				fprintf(stderr, "comment, type, amount = '%s', '%s', '%s'\n%s\n", comment, type, amount, select);
+				fprintf(stderr, "comment, type, amount = '%s', '%s', '%s'\n%s\n",
+				        comment, type, amount, select);
 				#endif
 				//snprintf(select, SELECT_LEN, "update %s set comment = '%s', type = '%s', amount = %s where id = '%s'", TABLE, comment, type, amount, UNIQUE_ID);
 				if (sql_len > (*P_COUNTER)) {	//	at least one variable to update
 					(*P_COUNTER) = sql_len;
 					len = strlen(" where id = 'abc12'");	//	length of rest
 					sql_len += snprintf(select+sql_len, SELECT_LEN-sql_len, " where id = '%s';", UNIQUE_ID);
-					if (((*P_COUNTER)+len != sql_len) && (sqlite3_exec(database, select, NULL, 0, &zErrMsg) != SQLITE_OK)) {
+					if (((*P_COUNTER)+len != sql_len) &&
+					    (sqlite3_exec(database, select, NULL, 0, &zErrMsg) != SQLITE_OK)) {
 						fprintf(stderr, "%d =? %d || SQL error %s\n", (*P_COUNTER)+len, sql_len, zErrMsg);
 						sqlite3_free(zErrMsg);
 						return -1;
