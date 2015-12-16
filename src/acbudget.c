@@ -1,9 +1,49 @@
 #include "acbudget.h"
 
 /*
+ * Checks and sets argument-bits accordingly.
+ */
+int argParser( int argc, char *argv[] )
+{
+	int i, j, options = 0;
+	for ( i=0; i<argc; i++ ) {
+
+		if ( argv[i][0]=='-' ) {
+
+			if ( strncmp( argv[i], "--help", 6 ) == 0 ||
+			     strncmp( argv[i], "-h", 2 ) == 0 ) {
+
+				usage();
+				return 0;
+				
+			}
+			else if ( strncmp( argv[i], "--merge", 7 ) == 0 ||
+			          strncmp( argv[i], "-m", 2 ) == 0 ) {
+
+				if ( argc < i+5 || merge(argv[i+1], argv[i+2], argv[i+3], argv[i+4]) ) {
+
+					printf("Incorrect arguments for MERGE, see usage -h or --help\n");
+					return -1;
+					
+				}
+				
+			}
+			else if ( strncmp( argv[i], "--verbose", 9 ) == 0 ||
+			          strncmp( argv[i], "-v", 2 ) == 0 ) {
+				
+				options |= 0x02;
+				
+			}
+		}
+	}
+	options |= 0x01;
+	return options;
+}
+
+/*
  *	Fetches/creates default configuration in 'config.ini' file
  */
-int configurate(char *command)
+int configurate( char *command )
 {
 	#if DEBUG
 	fprintf(stderr, "Configurating..\n");
@@ -95,59 +135,101 @@ int configurate(char *command)
 }
 
 /*
+ * Merges cpyTable in cpyDatabase into refTable in refDatabase
+ */
+int merge( char *refDatabase, char *cpyDatabase, char *refTable, char *cpyTable )
+{
+
+	#ifdef DEBUG
+	fprintf(stderr, "refDatabase | cpyDatabase | refTable | cpyTable\n%s|%s|%s|%s\n", refDatabase, cpyDatabase, refTable, cpyTable);
+	#endif
+
+	
+	
+	return 0;
+	
+}
+
+/*
  *	Main method to initialize program
  */
-int main(int argc, char **argv)
+int main( int argc, char **argv )
 {
+	int options = argParser( argc, argv );
+	if ( options < 1 ) {
+		
+		return options;
+		
+	}
+	
 	database = 0;
 	char *zErrMsg = 0, command[COMMAND_LEN] = "\0", *printout = 0;
 	int rc = 0, len = 0;
-	/*
+
+    /*
 	 *	First configurates database according to a config-file (if not present, creates default)
 	 *	Then accepts user input and acts accordingly.
 	 */
 	configurate(command);
 	rc = sqlite3_open(DATABASE, &database);
+	
 	if ( rc ) {
+		
 		fprintf(stderr, "Can't open database: %s\n", sqlite3_errmsg(database));
 		return(1);
+		
 	}
+	
 	len = get_command(command, "main");
 	//	Loop user for input while user don't want to quit
+	
 	while ((strncmp(command, "q\0", 2) != 0) && (strncmp(command, "quit\0", 5) != 0)) {
+		
 		#if DEBUG
 		fprintf(stderr, "%s (%d)\n", command, len);
 		#endif
 		printout = execute_command(command, database);
 		//	Printout if there is anything to print
-		if (printout == 0) {
+		if ( printout == 0 ) {
+			
 			fprintf(stderr, "Error in a command, please look above for other error-messages\n");
 			break;
+			
 		}
-		if (strlen(printout) > 1) {
+		
+		if ( strlen(printout) > 1 ) {
+			
 			printf("%s", printout);
+			
 		}
+		
 		//	Fetch a new command
 		len = get_command(command, "main");
 	}
+	
 	sqlite3_close(database);
 	free(CONFIG_FILENAME);
-	if (free_all()) {	
+	
+	if ( free_all() ) {
+		
 		#if DEBUG
 		fprintf(stderr, "free_all() did not return correctly\n.");
 		#endif
 		return -1;
+		
 	}
+	
 	#if DEBUG
 	fprintf(stderr, "free_all() returned correctly\n.");
 	#endif
 	return 0;
+	
 }
 
 /*
  *	Saves current configuration to 'config.ini' 
  */
-void save_config(char *command, sqlite3 *database)
+void save_config( char *command, sqlite3 *database )
 {
 	FILE *config_file;
 	config_file = fopen(CONFIG_FILENAME, "r");
@@ -221,4 +303,18 @@ void save_config(char *command, sqlite3 *database)
 		free(tmpname);
 	}
 	return;
+}
+
+void usage( void )
+{
+	int tabulateLen = 5;
+	char *usageString, *tempString;
+	printf("Usage: $ ./aCBudget [options]\n");
+	asprintf( &tempString, "%%%%s\n%%-%ds%%%%s\n", tabulateLen );
+	asprintf( &usageString, tempString, " " );
+	free(tempString);
+	printf(usageString, "--help -h", "Shows this information.");
+	printf(usageString, "--merge -m database1 database2 table1 table2", "Will merge rows from table2 of database2 into table1 of database1.");
+	printf(usageString, "--verbose -v", "Be loud about what you do.");
+	free(usageString);
 }

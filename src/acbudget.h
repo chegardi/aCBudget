@@ -1,8 +1,8 @@
 //  standard libraries
-#include<stdio.h>
-#include<stdlib.h>
-#include<string.h>
-#include<errno.h>
+#include<stdio.h>  // fprintf, printf, snprintf, FILE, stdout, stderr, scanf, 
+#include<stdlib.h> // free, calloc, EXIT_FAILURE, 
+#include<string.h> // strncpy, strlen, strtok, strstr, 
+#include<errno.h>  // errno
 
 //  aCBudget libraries
 #include "acbudget_sql.h"
@@ -28,7 +28,7 @@ typedef struct insert {
 	char	type[TYPE_LEN];
 	char	amount[AMOUNT_LEN];
 	char	id[ID_LEN];
-}	INSERT;
+}	insert_t;
 
 //	database variables
 sqlite3 *database;
@@ -46,6 +46,9 @@ int 	*P_COUNTER,
 		*READ_COUNTER;
 
 //	main functions
-int configurate(char *command);
-int main(int argc, char **argv);
-void save_config(char *command, sqlite3 *db);
+int argParser( int argc, char *argv[] );
+int configurate( char *command );
+int merge( char *refDatabase, char *cpyDatabase, char *refTable, char *cpyTable );
+int main( int argc, char **argv );
+void save_config( char *command, sqlite3 *db );
+void usage( void );

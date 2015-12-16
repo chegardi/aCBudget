@@ -363,7 +363,7 @@ int read_DNB(FILE *fp, sqlite3 *database)
 		input[INPUT_LEN],			//	input lines
 		insert_into[INSERT_LEN],	//	insert into statement
 		*token;						//	tokens from input
-	INSERT	insert;					//	struct with all variables of an insert as members
+	insert_t	insert;					//	struct with all variables of an insert as members
 	correct = calloc(4, sizeof(char));
 	strncpy(correct, "ynq", 3);
 	while (fgets(input, INPUT_LEN, fp) != NULL) {
@@ -509,7 +509,7 @@ int read_SBS(FILE *fp, sqlite3 *database)
 		datemonth[3],							//	mm monthdate
 		*token,										//	tokens from input
 		*datetoken;								//	used to temporarily store date elements from token
-	INSERT insert;
+	insert_t insert;
 	correct = calloc(4, sizeof(char));
 	strncpy(correct, "ynq", 4);
 
