@@ -1,6 +1,6 @@
 char *config_command(char *command, sqlite3 *database);
 char *execute_command(char *command, sqlite3 *database);
-int get_command(char *command, char *command_text);
+int prompt(char *command, char *command_text);
 int get_update_command(char *command, char *command_text);
 void print_help(char *command);
 int print_stats(char *command, sqlite3 *database);

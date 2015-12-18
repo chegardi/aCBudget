@@ -48,7 +48,6 @@ int 	*P_COUNTER,
 //	main functions
 int argParser( int argc, char *argv[] );
 int configurate( char *command );
-int merge( char *refDatabase, char *cpyDatabase, char *refTable, char *cpyTable );
 int main( int argc, char **argv );
 void save_config( char *command, sqlite3 *db );
 void usage( void );

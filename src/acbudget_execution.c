@@ -8,7 +8,7 @@ char *config_command(char *command, sqlite3 *database)
 {
 	int len;
 	char *variable, *value;
-	len = get_command(command, "config");
+	len = prompt(command, "config");
 	while ((strncmp(command, "e\0", 2) != 0) && (strncmp(command, "end\0", 4) != 0)) {
 		if ((strncmp(command, "sv\0", 3) == 0) || (strncmp(command, "save\0", 5) == 0)) {
 			save_config(command, database);
@@ -114,7 +114,7 @@ char *config_command(char *command, sqlite3 *database)
 			}
 			else	printf("No such command: %s\n", command);
 		}
-		len = get_command(command, "config");
+		len = prompt(command, "config");
 	}
 	return command;
 }
@@ -150,7 +150,7 @@ char *execute_command(char *command, sqlite3 *database)
 /*
  *	Prompts for and stores next command
  */
-int get_command(char *command, char *command_text)
+int prompt(char *command, char *command_text)
 {
 	printf("aCBudget.%s > ", command_text);
 	int command_len = strlen(fgets(command, COMMAND_LEN, stdin));
@@ -182,7 +182,7 @@ char *myselect(char *command, sqlite3 *database)
 	}
 	else {
 		printf("===WARNING===\nAny statements written WILL be executed! Be careful NOT to execute unintended statements on database.\n===WARNING===\n");
-		len = get_command(select, "select");
+		len = prompt(select, "select");
 		while ((strncmp(select, "e\0", 2) != 0) && (strncmp(select, "end\0", 4) != 0)) {
 			if (strncmp(select, "select ", 7) != 0) {
 				printf("Really execute '%s', ?: ", select);
@@ -197,7 +197,7 @@ char *myselect(char *command, sqlite3 *database)
 					counter++;
 				}
 			}
-			len = get_command(select, "select");
+			len = prompt(select, "select");
 		}
 		snprintf(command, COMMAND_LEN, "%d commands excuted\n", counter);
 		free(select);
@@ -217,7 +217,7 @@ int print_stats(char *command, sqlite3 *database)
 	char	select[SELECT_LEN];
 	do {
 		/*	prompt user for command	*/
-		len = get_command(command, "stats");
+		len = prompt(command, "stats");
 		/*	print stat selected or exit	*/
 		execution = atoi(command);
 		if (strncmp(command, "h\0", 2) == 0)	print_stats_help();
@@ -310,7 +310,7 @@ int read_file(char *command, sqlite3 *database)
 	char filename[50], type;
 	filename[0] = '\0';
 	while (1) {
-		len = get_command(filename, "filename");
+		len = prompt(filename, "filename");
 		if ((strncmp(filename, "e\0", 2) == 0) || (strncmp(filename, "end\0", 4) == 0))
 			break;
 		fp = fopen(filename, "r");

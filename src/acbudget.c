@@ -17,17 +17,6 @@ int argParser( int argc, char *argv[] )
 				return 0;
 				
 			}
-			else if ( strncmp( argv[i], "--merge", 7 ) == 0 ||
-			          strncmp( argv[i], "-m", 2 ) == 0 ) {
-
-				if ( argc < i+5 || merge(argv[i+1], argv[i+2], argv[i+3], argv[i+4]) ) {
-
-					printf("Incorrect arguments for MERGE, see usage -h or --help\n");
-					return -1;
-					
-				}
-				
-			}
 			else if ( strncmp( argv[i], "--verbose", 9 ) == 0 ||
 			          strncmp( argv[i], "-v", 2 ) == 0 ) {
 				
@@ -135,22 +124,6 @@ int configurate( char *command )
 }
 
 /*
- * Merges cpyTable in cpyDatabase into refTable in refDatabase
- */
-int merge( char *refDatabase, char *cpyDatabase, char *refTable, char *cpyTable )
-{
-
-	#ifdef DEBUG
-	fprintf(stderr, "refDatabase | cpyDatabase | refTable | cpyTable\n%s|%s|%s|%s\n", refDatabase, cpyDatabase, refTable, cpyTable);
-	#endif
-
-	
-	
-	return 0;
-	
-}
-
-/*
  *	Main method to initialize program
  */
 int main( int argc, char **argv )
@@ -180,7 +153,7 @@ int main( int argc, char **argv )
 		
 	}
 	
-	len = get_command(command, "main");
+	len = prompt(command, "main");
 	//	Loop user for input while user don't want to quit
 	
 	while ((strncmp(command, "q\0", 2) != 0) && (strncmp(command, "quit\0", 5) != 0)) {
@@ -204,7 +177,7 @@ int main( int argc, char **argv )
 		}
 		
 		//	Fetch a new command
-		len = get_command(command, "main");
+		len = prompt(command, "main");
 	}
 	
 	sqlite3_close(database);
@@ -314,7 +287,6 @@ void usage( void )
 	asprintf( &usageString, tempString, " " );
 	free(tempString);
 	printf(usageString, "--help -h", "Shows this information.");
-	printf(usageString, "--merge -m database1 database2 table1 table2", "Will merge rows from table2 of database2 into table1 of database1.");
 	printf(usageString, "--verbose -v", "Be loud about what you do.");
 	free(usageString);
 }
