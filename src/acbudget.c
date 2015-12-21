@@ -154,6 +154,10 @@ int main( int argc, char **argv )
 	}
 	
 	len = prompt(command, "main");
+	if ( len < 0 ) {
+		free_all();
+		return 4;
+	}
 	//	Loop user for input while user don't want to quit
 	
 	while ((strncmp(command, "q\0", 2) != 0) && (strncmp(command, "quit\0", 5) != 0)) {
@@ -178,6 +182,10 @@ int main( int argc, char **argv )
 		
 		//	Fetch a new command
 		len = prompt(command, "main");
+		if ( len < 0 ) {
+			free_all();
+			return 4;
+		}
 	}
 	
 	sqlite3_close(database);

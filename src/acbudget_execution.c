@@ -150,10 +150,17 @@ char *execute_command(char *command, sqlite3 *database)
 /*
  *	Prompts for and stores next command
  */
-int prompt(char *command, char *command_text)
+int prompt( char *command, char *command_text )
 {
-	printf("aCBudget.%s > ", command_text);
-	int command_len = strlen(fgets(command, COMMAND_LEN, stdin));
+	printf( "aCBudget.%s > ", command_text );
+	if ( !fgets( command, COMMAND_LEN, stdin ) ) { // EOT if 0
+
+		free_all();
+		exit(4);
+		
+	}
+	
+	int command_len = strlen( command );
 	command[command_len-1] = '\0';
 	return command_len;
 }
@@ -161,7 +168,7 @@ int prompt(char *command, char *command_text)
 /*
  *	Need a slightly different command_argument for the update command
  */
-int get_update_command(char *command, char *command_text)
+int prompt_update(char *command, char *command_text)
 {
 	printf("aCBudget.update > %s: ", command_text);
 	int command_len = strlen(fgets(command, COMMAND_LEN, stdin));
@@ -648,7 +655,7 @@ int update(char *command, sqlite3 *database)
 	P_COUNTER = calloc(1, sizeof(int));
 	do {
 		snprintf(commandhelp, COMMAND_LEN, "day in month (%s)", MONTH);
-		len = get_update_command(command, commandhelp);
+		len = prompt_update(command, commandhelp);
 
 		//	Check if user wants to quit
 		if ((strncmp(command, "e\0", 2) == 0) || (strncmp(command, "end\0", 4) == 0))	break;
@@ -692,7 +699,7 @@ int update(char *command, sqlite3 *database)
 			//	give user ability to divide/update entries
 			day = calloc(1, sizeof(char) * 3);
 			snprintf(day, 3, "%02d", atoi(command));
-			len = get_update_command(command, "number to update"); command[len-1] = '\0';
+			len = prompt_update(command, "number to update"); command[len-1] = '\0';
 			#if DEBUG
 			fprintf(stderr, "day: '%s', command: '%s'\n", day, command);
 			#endif
@@ -759,12 +766,12 @@ int update(char *command, sqlite3 *database)
 				sql_len = 0;	//	the total length of sql-command initialization
 				sql_len += snprintf(select, SELECT_LEN, "update %s set", TABLE);
 				(*P_COUNTER) = sql_len;
-				len = get_update_command(comment, "comment"); comment[len-1] = '\0';
+				len = prompt_update(comment, "comment"); comment[len-1] = '\0';
 				if (len > 1) {	//	comment is to be updated
 					sql_len += snprintf(select+sql_len, SELECT_LEN-sql_len,
 					                    " comment = '%s'", comment);
 				}
-				len = get_update_command(type, "type"); type[len-1] = '\0';
+				len = prompt_update(type, "type"); type[len-1] = '\0';
 				if (len > 1) {	//	type is to be updated
 					if (sql_len > (*P_COUNTER)) {	//	need to add comma after previous variable
 						*(select+sql_len++) = ',';
@@ -772,7 +779,7 @@ int update(char *command, sqlite3 *database)
 					}
 					sql_len += snprintf(select+sql_len, SELECT_LEN-sql_len, " type = '%s'", type);
 				}
-				len = get_update_command(amount, "amount"); amount[len-1] = '\0';
+				len = prompt_update(amount, "amount"); amount[len-1] = '\0';
 				if (len > 1) {	//	amount is to be updated
 					if (sql_len > (*P_COUNTER)) {	//	need to add comma after previous variable
 						*(select+sql_len++) = ',';
@@ -808,9 +815,9 @@ int update(char *command, sqlite3 *database)
 				scanf("%c", &correct);
 				clean_stdin();
 				if (correct == 'y') {	//	add another row with new comment, type and amount on same date
-					get_update_command(comment, "comment");
-					get_update_command(type, "type");
-					get_update_command(amount, "amount");
+					prompt_update(comment, "comment");
+					prompt_update(type, "type");
+					prompt_update(amount, "amount");
 					generate_id(UNIQUE_ID);																					//	id
 					//	insert into TABLE values (DATE, COMMENT, TYPE, AMOUNT, ID);
 					snprintf(select, SELECT_LEN, "insert into %s values('%04d-%02d-%02d', '%s', '%s', %s, '%s');",
