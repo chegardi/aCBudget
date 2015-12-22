@@ -9,46 +9,161 @@ char *config_command(char *command, sqlite3 *database)
 	int len;
 	char *variable, *value;
 	len = prompt(command, "config");
-	while ((strncmp(command, "e\0", 2) != 0) && (strncmp(command, "end\0", 4) != 0)) {
-		if ((strncmp(command, "sv\0", 3) == 0) || (strncmp(command, "save\0", 5) == 0)) {
-			save_config(command, database);
+	while ( ( equals( command, "e" ) != 0 ) &&
+	        ( equals( command, "end" ) != 0 ) ) {
+		// 'e' or 'end' ends config command'
+
+
+		len = strlen(command);
+		variable = xstrtok(command, "=");
+		if (len != strlen(variable)) {	//	unequal length implies a '=' sign
+			value = xstrtok(NULL, "");
+			if ( equals( variable, "year" ) == 0 ) {
+				
+				free( YEAR );
+				YEAR = calloc( 1, sizeof( char ) * strlen( value ) );
+				strcpy( YEAR, value );
+				
+			}
+			else if ( equals( variable, "month" ) == 0 ) {
+				
+				free( MONTH );
+				MONTH = calloc( 1, sizeof( char ) * strlen( value ) );
+				strcpy( MONTH, value );
+				
+			}
+			else if ( equals( variable, "table" ) == 0 ) {
+
+				free( TABLE );
+				TABLE = calloc( 1, sizeof( char ) * strlen( value ) );
+				strcpy( TABLE, value );
+				
+			}
+			else if ( equals( variable, "database" ) == 0 ) {
+				/*
+				  database to be changed, this section is a bit messy because
+				  sometimes it works, and sometimes it doesn't 
+				 */
+				int retval = sqlite3_close( database );
+				if ( retval == SQLITE_OK ) {
+//						printf("retval (%d) ?= SQLITE_OK (%d) = true\n", retval, SQLITE_OK);
+					if ( sqlite3_open( value, &database ) != SQLITE_OK ) {	//	database could not be opened
+						
+						fprintf(stderr, "Failed to open database (%s). SQLError-message: %s\nTrying to open old database...", value, sqlite3_errmsg(database));
+						if ( sqlite3_open( DATABASE, &database ) != SQLITE_OK ) {		//	old database could not be opened
+							
+							fprintf(stderr, "Failed to open old database (%s). SQLError-message: %s\nProgram shutdown to prevent damage to files.", DATABASE, sqlite3_errmsg(database));
+							exit(EXIT_FAILURE);
+							
+						}
+						
+					}
+					else {
+						//	database opened successfully
+						len = strlen( value ) + 1;
+						if ( strlen( DATABASE ) != strlen( value ) ) {	//	unequal lengths, new mallocation neccesary
+
+							free( DATABASE );
+							DATABASE = calloc( 1, sizeof( char ) * len );
+							
+						}
+						strncpy( DATABASE, value, len );
+						
+					}
+					
+				}
+				else {
+					printf("Could not change database to '%s', try again\n", value);
+//					printf("retval (%d) ?= SQLITE_OK (%d) = false?\n", retval, SQLITE_OK);
+				}
+			}
+			else if ( equals( variable, "read" ) == 0 ) {
+				
+				(*READ_COUNTER) = atoi( value );
+				
+			}
+			else {
+				printf("No such configurable variable: %s\n", variable);
+			}
+		}
+		else if ( ( equals( command, "sv") == 0 ) ||
+		     ( equals( command, "save" ) == 0 ) ) {
+			// 'sv' or 'save' is save config command
+			save_config( command, database );
 			printf("%s", command);
+			
 		}
-		else if ((strncmp(command, "ld\0", 3) == 0) || (strncmp(command, "load\0", 5) == 0)) {
-			if (configurate(command))	printf("Loading configuration from '%s' failed.\n", CONFIG_FILENAME);
-			else	printf("Configuration loaded from '%s'.\n", CONFIG_FILENAME);
+		else if ( ( equals( command, "ld" ) == 0 ) ||
+		          ( equals( command, "load" ) == 0 ) ) {
+			// 'ld' or 'load' load configuration command
+			if ( configurate( command ) ) { // true means it could NOT load config
+				printf("Loading configuration from '%s' failed.\n", CONFIG_FILENAME);
+			}
+			else { // configuration loaded
+				printf("Configuration loaded from '%s'.\n", CONFIG_FILENAME);
+			}
+			
 		}
-		else if ((strncmp(command, "sw\0", 3) == 0) || (strncmp(command, "show\0", 5) == 0)) {
-			printf("Database: %s\nTable: %s\nMonth: %s\nYear: %s\nRead: %d\n", DATABASE, TABLE, MONTH, YEAR, (*READ_COUNTER));
+		else if ( ( equals( command, "sw") == 0 ) ||
+		          ( equals( command, "show" ) == 0 ) ) {
+			// 'sw' or 'show' displays current configurations
+			printf("Database: %s\nTable: %s\nMonth: %s\nYear: %s\nRead: %d\n",
+			       DATABASE, TABLE, MONTH, YEAR, (*READ_COUNTER));
+			
 		}
-		else if ((strncmp(command, "yr\0", 3) == 0) ||(strncmp(command, "year\0", 5) == 0)) {
+		else if ( ( equals( command, "yr") == 0 ) ||
+		          ( equals( command, "year" ) == 0 ) ) {
+			// 'yr' or 'year' shows current variable for YEAR
 			printf("Year=%s\n", YEAR);
+			
 		}
-		else if ((strncmp(command, "mn\0", 3) == 0) || (strncmp(command, "month\0", 6) == 0)) {
+		else if ( ( equals( command, "mn" ) == 0 ) ||
+		          ( equals( command, "month" ) == 0 ) ) {
+			// 'mn' or 'month' shows current variable for MONTH
 			printf("Month=%s\n", MONTH);
+			
 		}
-		else if ((strncmp(command, "tb\0", 3) == 0) || (strncmp(command, "table\0", 6) == 0)) {
+		else if ( ( equals( command, "tb" ) == 0 ) ||
+		          ( equals( command, "table" ) == 0 ) ) {
+			// 'tb' or 'table' shows current variable for TABLE
 			printf("Table=%s\n", TABLE);
+			
 		}
-		else if ((strncmp(command, "rd\0", 3) == 0) || (strncmp(command, "read\0", 5) == 0)) {
+		else if ( ( equals( command, "rd" ) == 0 ) ||
+		          ( equals( command, "read") == 0 ) ) {
+			// 'rd' or 'read' shows current variable for READ_COUNTER
 			printf("Read=%d\n", (*READ_COUNTER));
+			
 		}
-		else if ((strncmp(command, "db\0", 3) == 0) || (strncmp(command, "database\0", 9) == 0)) {
+		else if ( ( equals( command, "db" ) == 0 ) ||
+		          ( equals( command, "database") == 0 ) ) {
+			// 'db' or 'database' shows current variable for DATABASE
 			printf("Database=%s\n", DATABASE);
+			
 		}
-		else if ((strncmp(command, "bu\0", 3) == 0) || (strncmp(command, "backup\0", 7) == 0)) {
-			if (revert_or_backup(database, 1)) {
+		else if ( ( equals( command, "bu" ) == 0 ) ||
+		          ( equals( command, "backup" ) == 0 ) ) {
+			// 'bu' or 'backup' stores a copy of the current database
+			if ( revert_or_backup( database, 1 ) ) { // TRUE if backup failed
+
 				snprintf(command, COMMAND_LEN, "Failed to backup, exit program and contact developer!\n");
 				return command;
+				
 			}
 		}
-		else if ((strncmp(command, "rv\0", 3) == 0) || (strncmp(command, "revert\0", 7) == 0)) {
-			if (revert_or_backup(database, 0)) {
+		else if ( ( equals( command, "rv" ) == 0 ) ||
+		          ( equals( command, "revert" ) == 0 ) ) {
+			// 'rv' or 'revert' restores a previous backup of database
+			if ( revert_or_backup( database, 0 ) ) { // TRUE if revert failed
+
 				snprintf(command, COMMAND_LEN, "Failed to revert: exit program and contact developer!\n");
 				return command;
+				
 			}
 		}
-		else if ((strncmp(command, "h\0", 2) == 0) || (strncmp(command, "help\0", 5) == 0)) {
+		else if ( ( equals( command, "h" ) == 0 ) ||
+		          ( equals( command, "help" ) == 0 ) ) {
+			// 'h' or 'help' prints out commands available within config
 			fprintf(stdout,
 			"Commands withing config:\n%-2s or %8s - %s\n%-2s or %8s - %s\n%-2s or %8s - %s\n%-2s or %8s - %s\n%-2s or %8s - %s\n%-2s or %8s - %s\n%-2s or %8s - %s\n%-2s or %8s - %s\n%-2s or %8s - %s\n%-2s or %8s - %s\n%-2s or %8s - %s\n%14s - %s\n",
 			"h", "help", "Displays this help text",
@@ -63,56 +178,10 @@ char *config_command(char *command, sqlite3 *database)
 			"bu", "backup", "Backups current database",
 			"rv", "revert", "Reverts the database to backup",
 			"variable=value", "sets variable(v) to new value");
+			
 		}
 		else {
-			len = strlen(command);
-			variable = xstrtok(command, "=");
-			if (len != strlen(variable)) {	//	to be sure there actually was a '=' sign
-				value = xstrtok(NULL, "");
-				if (strncmp(variable, "year\0", 5) == 0) {
-					free(YEAR);
-					YEAR = calloc(1, sizeof(char)*strlen(value));
-					strcpy(YEAR, value);
-				}
-				else if (strncmp(variable, "month\0", 6) == 0) {
-					free(MONTH);
-					MONTH = calloc(1, sizeof(char)*strlen(value));
-					strcpy(MONTH, value);
-				}
-				else if (strncmp(variable, "table\0", 6) == 0) {
-					free(TABLE);
-					TABLE = calloc(1, sizeof(char)*strlen(value));
-					strcpy(TABLE, value);
-				}
-				else if (strncmp(variable, "database\0", 9) == 0) {
-					int retval = sqlite3_close(database);
-					if (retval == SQLITE_OK) {
-//						printf("retval (%d) ?= SQLITE_OK (%d) = true\n", retval, SQLITE_OK);
-						if (sqlite3_open(value, &database) != SQLITE_OK) {	//	database could not be opened
-							fprintf(stderr, "Failed to open database (%s). SQLError-message: %s\nTrying to open old database...", value, sqlite3_errmsg(database));
-							if (sqlite3_open(DATABASE, &database) != SQLITE_OK) {		//	old database could not be opened
-								fprintf(stderr, "Failed to open old database (%s). SQLError-message: %s\nProgram shutdown to prevent damage to files.", DATABASE, sqlite3_errmsg(database));
-								exit(EXIT_FAILURE);
-							}
-						}
-						else {	//	database opened successfully
-							len = strlen(value)+1;
-							if (strlen(DATABASE) != strlen(value)) {	//	unequal lengths, new mallocation neccesary
-								free(DATABASE);
-								DATABASE = calloc(1, sizeof(char)*len);
-							}
-							strncpy(DATABASE, value, len);
-						}
-					}
-					else printf("Could not change database to '%s', try again\n", value);
-//					printf("retval (%d) ?= SQLITE_OK (%d) = false?\n", retval, SQLITE_OK);
-				}
-				else if (strncmp(variable, "read\0", 5) == 0) {
-					(*READ_COUNTER) = atoi(value);
-				}
-				else	printf("No such configurable variable: %s\n", variable);
-			}
-			else	printf("No such command: %s\n", command);
+			printf("No such command: %s\n", command);
 		}
 		len = prompt(command, "config");
 	}
@@ -124,25 +193,44 @@ char *config_command(char *command, sqlite3 *database)
  */
 char *execute_command(char *command, sqlite3 *database)
 {
-	if (strncmp(command, "insert\0", 7) == 0) {
-		snprintf(command, COMMAND_LEN, "%d insertions made.\n", insert(command, database));
-	} else if (strncmp(command, "select\0", 6) == 0) {
-		return myselect(command, database);
-	} else if (strncmp(command, "read\0", 5) == 0) {
-		snprintf(command, COMMAND_LEN, "%d insertions made.\n", read_file(command, database));
-	} else if (strncmp(command, "update\0",  7) == 0) {
-		int updated = update(command, database);
-		if (updated < 0)	return 0;
+	if ( equals(command, "insert" ) == 0 ) {
+		
+		snprintf(command, COMMAND_LEN, "%d insertions made.\n", insert( command, database ) );
+		
+	} else if ( equals( command, "select" ) == 0 ) {
+		
+		return myselect( command, database );
+		
+	} else if ( equals( command, "read" ) == 0 ) {
+		
+		snprintf(command, COMMAND_LEN, "%d insertions made.\n", read_file( command, database ));
+		
+	} else if ( equals( command, "update" ) == 0 ) {
+		
+		int updated = update( command, database );
+		if ( updated < 0 ) {
+			return 0;
+		}
 		snprintf(command, COMMAND_LEN, "%d entries updated.\n", updated);
-	} else if (strncmp(command, "stats\0", 6) == 0) {
-		snprintf(command, COMMAND_LEN, "%d stats printed.\n", print_stats(command, database));
-	} else if (strncmp(command, "config\0", 7) == 0) {
-		return config_command(command, database);
-	} else if ((strncmp(command, "help\0", 5) == 0) || (strncmp(command, "h\0", 2) == 0)) {
-		print_help(command);
+		
+	} else if ( equals( command, "stats" ) == 0 ) {
+		
+		snprintf(command, COMMAND_LEN, "%d stats printed.\n", print_stats( command, database ) );
+		
+	} else if ( equals( command, "config" ) == 0 ) {
+		
+		return config_command( command, database );
+		
+	} else if ( ( equals( command, "help" ) == 0 ) ||
+	            ( equals( command, "h" ) == 0 ) ) {
+		
+		print_help( command );
+		
 	} else {
+
 		printf("aCBudget.%s > no such command\n", command);
 		(*command) = 0;
+		
 	}
 	return command;
 }

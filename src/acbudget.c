@@ -34,73 +34,81 @@ int argParser( int argc, char *argv[] )
  */
 int configurate( char *command )
 {
-	#if DEBUG
+#if DEBUG
 	fprintf(stderr, "Configurating..\n");
-	#endif
-    //	Checking for configuration file
-	if (!CONFIG_FILENAME)	CONFIG_FILENAME = calloc(1, sizeof(char) * strlen("config.ini")+1);
-	strcpy(CONFIG_FILENAME, "config.ini");
-	FILE *config_file = fopen(CONFIG_FILENAME, "r");
-	if (config_file == NULL) {	// file does not exist 
+#endif
+	//	Checking for configuration file
+	if ( !CONFIG_FILENAME )	CONFIG_FILENAME = calloc( 1, sizeof( char ) * strlen( "config.ini" )+1 );
+	strcpy( CONFIG_FILENAME, "config.ini" );
+	FILE *config_file = fopen( CONFIG_FILENAME, "r" );
+	
+	if ( config_file == NULL ) {	// file does not exist 
+
 		//	Initiating default values
-		DATABASE = calloc(1, sizeof(char)*strlen("database.db")+1);
-		strcpy(DATABASE, "database.db");
-		MONTH = calloc(1, sizeof(char)*strlen("01")+1);
-		strcpy(MONTH, "01");
-		YEAR = calloc(1, sizeof(char)*strlen("2015")+1);
-		strcpy(YEAR, "2015");
-		TABLE = calloc(1, sizeof(char)*strlen("r2015")+1);
-		strcpy(TABLE, "r2015");
-		READ_COUNTER = calloc(1, sizeof(int));
+		DATABASE = calloc( 1, sizeof(char)*strlen("database.db" )+1 );
+		strcpy( DATABASE, "database.db" );
+		MONTH = calloc( 1, sizeof( char ) * strlen( "01" )+1 );
+		strcpy( MONTH, "01" );
+		YEAR = calloc( 1, sizeof( char ) * strlen( "2015" )+1 );
+		strcpy( YEAR, "2015" );
+		TABLE = calloc( 1, sizeof( char ) * strlen( "r2015" )+1 );
+		strcpy( TABLE, "r2015" );
+		READ_COUNTER = calloc( 1, sizeof( int ) );
 		(*READ_COUNTER) = 0;
 		#if DEBUG
-		fprintf(stderr, "Creating '%s'\n", CONFIG_FILENAME);
+		fprintf( stderr, "Creating '%s'\n", CONFIG_FILENAME );
 		#endif
-		config_file = fopen("config.ini", "w");
-		fprintf(config_file, "#configuration file for aCBudget\n");
-		fprintf(config_file, "database=%s\n", DATABASE);
-		fprintf(config_file, "table=%s\n", TABLE);
-		fprintf(config_file, "year=%s\n", YEAR);
-		fprintf(config_file, "month=%s\n", MONTH);
-		fprintf(config_file, "read=%d\n", (*READ_COUNTER));
-		fclose(config_file);
+		config_file = fopen( "config.ini", "w" );
+		fprintf( config_file, "#configuration file for aCBudget\n" );
+		fprintf( config_file, "database=%s\n", DATABASE );
+		fprintf( config_file, "table=%s\n", TABLE );
+		fprintf( config_file, "year=%s\n", YEAR );
+		fprintf( config_file, "month=%s\n", MONTH );
+		fprintf( config_file, "read=%d\n", (*READ_COUNTER) );
+		fclose( config_file );
 		#if DEBUG
-		fprintf(stderr, "'%s' created\n", CONFIG_FILENAME);
+		fprintf( stderr, "'%s' created\n", CONFIG_FILENAME );
 		#endif
+		
 	}	//	file did not exist
 	else  {	// file exists
+
 		int	counter = 1,
 			len = 0,
 			end = 0;
 		char *variable, *value;
-		while (fgets(command, COMMAND_LEN, config_file) != 0) {
+		
+		while ( fgets( command, COMMAND_LEN, config_file ) != 0 ) {
+		
 			counter++;
-			if (command[0] != '#')	{	//	not a comment
-				variable = strtok(command, "=");
-				value = strtok(NULL, "");
+			if ( command[0] != '#' )	{	//	not a comment
+				variable = strtok( command, "=" );
+				value = strtok( NULL, "" );
 				#ifdef DEBUG
-				fprintf(stderr, "(%s) %s = %s\n", command, variable, value);
+				fprintf( stderr, "(%s) %s = %s\n", command, variable, value );
 				#endif
-				len = strlen(value);
-				if (len > 0) {
-					if (strncmp(variable, "year\0", 5) == 0) {free(YEAR);
-						YEAR = calloc(1, sizeof(char)*len);
-						strncpy(YEAR, value, len); YEAR[len-1] = 0;
+				len = strlen( value );
+				if ( len > 0 ) {
+		
+					if ( strncmp( variable, "year\0", 5 ) == 0 ) {
+						free( YEAR );
+						YEAR = calloc( 1, sizeof( char ) * len );
+						strncpy( YEAR, value, len ); YEAR[len-1] = 0;
 						#if DEBUG
-						fprintf(stderr, "YEAR=%s\n", YEAR);
+						fprintf( stderr, "YEAR=%s\n", YEAR );
 						#endif
-					} else if (strncmp(variable, "month\0", 6) == 0) {
-						free(MONTH);
-						MONTH = calloc(1, sizeof(char)*len);
-						strncpy(MONTH, value, len); MONTH[len-1] = 0;
-					} else if (strncmp(variable, "table\0", 6) == 0) {
-						free(TABLE);
-						TABLE = calloc(1, sizeof(char)*len);
-						strncpy(TABLE, value, len); TABLE[len-1] = 0;
+					} else if ( strncmp( variable, "month\0", 6 ) == 0 ) {
+						free( MONTH );
+						MONTH = calloc( 1, sizeof(char) * len );
+						strncpy( MONTH, value, len); MONTH[len-1] = 0;
+					} else if ( strncmp( variable, "table\0", 6) == 0) {
+						free( TABLE);
+						TABLE = calloc( 1, sizeof( char)*len);
+						strncpy( TABLE, value, len); TABLE[len-1] = 0;
 						#if DEBUG
-						fprintf(stderr, "TABLE=%s\n", TABLE);
+						fprintf( stderr, "TABLE=%s\n", TABLE);
 						#endif
-					} else if (strncmp(variable, "database\0", 9) == 0) {
+					} else if ( strncmp( variable, "database\0", 9) == 0) {
 						free(DATABASE);
 						DATABASE = calloc(1, sizeof(char)*len);
 						strncpy(DATABASE, value, len); DATABASE[len-1] = 0;
@@ -115,9 +123,9 @@ int configurate( char *command )
 			}	//	done with line
 		} //while (!feof(config_file));	//	lines left to check
 		fclose(config_file);
-		#if DEBUG
+#if DEBUG
 		fprintf(stderr, "'%s' imported\n", CONFIG_FILENAME);
-		#endif
+#endif
 		snprintf(command, COMMAND_LEN, "Settings loaded from '%s'\n", CONFIG_FILENAME);
 	}	//	file existed
 	return 0;
@@ -139,7 +147,7 @@ int main( int argc, char **argv )
 	char *zErrMsg = 0, command[COMMAND_LEN] = "\0", *printout = 0;
 	int rc = 0, len = 0;
 
-    /*
+	/*
 	 *	First configurates database according to a config-file (if not present, creates default)
 	 *	Then accepts user input and acts accordingly.
 	 */
@@ -162,9 +170,9 @@ int main( int argc, char **argv )
 	
 	while ((strncmp(command, "q\0", 2) != 0) && (strncmp(command, "quit\0", 5) != 0)) {
 		
-		#if DEBUG
+#if DEBUG
 		fprintf(stderr, "%s (%d)\n", command, len);
-		#endif
+#endif
 		printout = execute_command(command, database);
 		//	Printout if there is anything to print
 		if ( printout == 0 ) {
@@ -193,16 +201,16 @@ int main( int argc, char **argv )
 	
 	if ( free_all() ) {
 		
-		#if DEBUG
+#if DEBUG
 		fprintf(stderr, "free_all() did not return correctly\n.");
-		#endif
+#endif
 		return -1;
 		
 	}
 	
-	#if DEBUG
+#if DEBUG
 	fprintf(stderr, "free_all() returned correctly\n.");
-	#endif
+#endif
 	return 0;
 	
 }
@@ -216,9 +224,9 @@ void save_config( char *command, sqlite3 *database )
 	config_file = fopen(CONFIG_FILENAME, "r");
 	if (config_file == NULL)  // File does not exist, creating new file
 	{
-		#if DEBUG
+#if DEBUG
 		fprintf(stderr, "No old config file, creating new.\n");
-		#endif
+#endif
 		config_file = fopen(CONFIG_FILENAME, "w");
 		fprintf(config_file, "#configuration file for aCBudget\n");
 		fprintf(config_file, "database=%s\n", DATABASE);
@@ -230,21 +238,21 @@ void save_config( char *command, sqlite3 *database )
 		snprintf(command, COMMAND_LEN, "Settings saved to new file '%s'\n", CONFIG_FILENAME);
 	}
 	else  {	// file exists, merging
-		#if DEBUG
+#if DEBUG
 		fprintf(stderr, "Old config file found, merging...\n");
-		#endif
+#endif
 		FILE *new_file;
 		char *token, *tmpname = calloc(1, sizeof(char) * strlen(CONFIG_FILENAME)+1);
 		memset(tmpname, 'X', sizeof(strlen(CONFIG_FILENAME)));
-		#ifdef __linux__	//	Linux wants to use mkstemp()
+#ifdef __linux__	//	Linux wants to use mkstemp()
 		new_file = fdopen(mkstemp(tmpname), "w");
-		#else	//	use tmpnam()
+#else	//	use tmpnam()
 		tmpnam(tmpname);
 		new_file = fopen(tmpname, "w");
-		#endif
-		#if DEBUG
+#endif
+#if DEBUG
 		fprintf(stderr, "Created file with temp-name: '%s'\n", tmpname);
-		#endif
+#endif
 		int counter = 1, file_size = 0;
 		do {
 			if (fgets(command, COMMAND_LEN, config_file) != NULL) {
