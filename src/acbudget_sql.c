@@ -45,30 +45,6 @@ int easy_execute_sql( int argc, char **argv )
 }
 
 /*
- * Executes the sql-query
- */
-int regular_execute_sql( char *query )
-{
-
-	if ( sqlite3_exec( database, query, callback, 0, &zErrMsg ) != SQLITE_OK ) {
-
-		fprintf( stderr, "SQL error: %s\n", zErrMsg );
-		sqlite3_free( zErrMsg );
-		return 0; // NOT OK
-		
-	} else {
-		
-		#if DEBUG
-		printf("%s\n", query);
-		#endif
-		
-	}
-	
-	return 1; // OK
-	
-}
-
-/*
  *	insert command
  *	Used for standardized insertions to database
  */
@@ -76,13 +52,7 @@ int insert( char *command, sqlite3 *database )
 {
 
 	int len, i, counter = 0;	
-	char *zErrMsg = 0, *insert = calloc( 1, sizeof( char ) * INSERT_LEN ), *token, id[ID_LEN];
-
-	if ( !insert ) {
-
-		return -1;
-		
-	}
+	char *zErrMsg = 0, insert[INSERT_LEN], *token, id[ID_LEN];
 	
 	char usage[] = "usage (e or end to quit)\n"\
 		"***\naCBudget.insert > YYYY-MM-DD,comment,type,amount\n"\
@@ -100,11 +70,10 @@ int insert( char *command, sqlite3 *database )
 		} else {
 		
 			token = strtok(command, ",");
-			//snprintf(insert, INSERT_LEN, "\0");
 			( *insert ) = '\0'; len = 0;
 			len += snprintf( insert + len, INSERT_LEN, "insert into %s values(", TABLE );
+			
 			//	read and store date, comment and type
-
 			for ( i=0; i<3; i++ ) {
 		
 				if ( !token ) {		
@@ -120,7 +89,7 @@ int insert( char *command, sqlite3 *database )
 				
 			}
 
-			if (token) {
+			if ( token ) {
 				
 				//	store amount
 				#if DEBUG
@@ -162,7 +131,6 @@ int insert( char *command, sqlite3 *database )
 		
 	}
 	
-	free( insert );
 	return counter;
 	
 }
@@ -183,6 +151,54 @@ int numbered_callback(void *NotUsed, int argc, char **argv, char **azColName)
 	}
 	printf( "\n" );
 	return 0;
+}
+
+/*
+ * Executes the sql-query for numbered callback
+ */
+int numbered_execute_sql( char *query )
+{
+	
+	if ( sqlite3_exec( database, query, numbered_callback, 0, &zErrMsg ) != SQLITE_OK ) {
+
+		fprintf( stderr, "SQL error: %s\n", zErrMsg );
+		sqlite3_free( zErrMsg );
+		return 0; // NOT OK
+		
+	} else {
+		
+		#if DEBUG
+		printf("%s\n", query);
+		#endif
+		
+	}
+	
+	return 1; // OK
+	
+}
+
+/*
+ * Executes the sql-query
+ */
+int regular_execute_sql( char *query )
+{
+
+	if ( sqlite3_exec( database, query, callback, 0, &zErrMsg ) != SQLITE_OK ) {
+
+		fprintf( stderr, "SQL error: %s\n", zErrMsg );
+		sqlite3_free( zErrMsg );
+		return 0; // NOT OK
+		
+	} else {
+		
+		#if DEBUG
+		printf("%s\n", query);
+		#endif
+		
+	}
+	
+	return 1; // OK
+	
 }
 
 /*
@@ -260,4 +276,3 @@ int revert_or_backup(sqlite3 *database, int isSave)
 	return 0;
 	
 }
-

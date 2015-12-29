@@ -14,6 +14,7 @@
 #define COMMAND_LEN 256		//	regular length
 #define COMMENT_LEN 101		//	max length of comment is 100 + \0
 #define DATE_LEN 11			//	length of date: YYYY-MM-DD\0 = 11 chars
+#define DAY_LEN 3           //  length of day in month DD\0
 #define ID_LEN 6			//	unique id is 5 chars + \0
 #define INPUT_LEN 512		//	regular length x2
 #define INSERT_LEN 256		//	for use during insert-actions on SQL

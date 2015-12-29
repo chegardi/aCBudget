@@ -93,6 +93,9 @@ int equals( char *challenger, char *matcher )
 {
 	
 	int len = strlen( matcher ) + 1; // +1 is to include the 0-terminator
+	#ifdef DEBUG
+	fprintf( stderr, "strncmp( %s, %s, %d ) = %d\n", challenger, matcher, len, strncmp( challenger, matcher, len ) );
+	#endif
 	return strncmp( challenger, matcher, len);
 	
 }
@@ -197,6 +200,19 @@ int print_stats_help( void )
 	printf("%-2c: exit\n", 'e');
 	return cnt_commands;
 	
+}
+
+int store_month( char *string_month )
+{
+	int month = strtol( string_month, 0, 10 );
+	if ( month > 0 && month < 13 ) {
+		//  Month within legal range (1-12)
+		snprintf(MONTH, 3, "%02d", month);
+		return 0;
+	}
+	printf("Month outside range 1-12: %d\n", month);
+	return 1;
+		
 }
 
 /**

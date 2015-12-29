@@ -4,55 +4,56 @@
 /*
  *	Provides runtime configuration-options
  */
-char *config_command(char *command, sqlite3 *database)
+char *config_command( char *command, sqlite3 *database )
 {
 	int len;
 	char *variable, *value;
-	len = prompt(command, "config");
+	len = prompt( command, "config" );
 	while ( ( equals( command, "e" ) != 0 ) &&
 	        ( equals( command, "end" ) != 0 ) ) {
 		// 'e' or 'end' ends config command'
 
 
-		len = strlen(command);
-		variable = xstrtok(command, "=");
-		if (len != strlen(variable)) {	//	unequal length implies a '=' sign
-			value = xstrtok(NULL, "");
+		len = strlen( command );
+		variable = xstrtok( command, "=" );
+		if ( len != strlen( variable ) ) {	//	unequal length implies a '=' sign
+			
+			value = xstrtok( NULL, "" );
 			if ( equals( variable, "year" ) == 0 ) {
 				
 				free( YEAR );
 				YEAR = calloc( 1, sizeof( char ) * strlen( value ) );
 				strcpy( YEAR, value );
 				
-			}
-			else if ( equals( variable, "month" ) == 0 ) {
+			} else if ( equals( variable, "month" ) == 0 ) {
 				
 				free( MONTH );
 				MONTH = calloc( 1, sizeof( char ) * strlen( value ) );
 				strcpy( MONTH, value );
 				
-			}
-			else if ( equals( variable, "table" ) == 0 ) {
+			} else if ( equals( variable, "table" ) == 0 ) {
 
 				free( TABLE );
 				TABLE = calloc( 1, sizeof( char ) * strlen( value ) );
 				strcpy( TABLE, value );
 				
-			}
-			else if ( equals( variable, "database" ) == 0 ) {
+			} else if ( equals( variable, "database" ) == 0 ) {
 				/*
-				  database to be changed, this section is a bit messy because
-				  sometimes it works, and sometimes it doesn't 
+				 * database to be changed, this section is a bit messy because
+				 * sometimes it works, and sometimes it doesn't 
 				 */
 				int retval = sqlite3_close( database );
 				if ( retval == SQLITE_OK ) {
-//						printf("retval (%d) ?= SQLITE_OK (%d) = true\n", retval, SQLITE_OK);
-					if ( sqlite3_open( value, &database ) != SQLITE_OK ) {	//	database could not be opened
+
+					if ( sqlite3_open( value, &database ) != SQLITE_OK ) {
+						//	database could not be opened						
+						fprintf( stderr,
+						        "Failed to open database (%s). SQLError-message: %s\n%s",
+						        "Trying to open old database...", value, sqlite3_errmsg( database ) );
 						
-						fprintf(stderr, "Failed to open database (%s). SQLError-message: %s\nTrying to open old database...", value, sqlite3_errmsg(database));
-						if ( sqlite3_open( DATABASE, &database ) != SQLITE_OK ) {		//	old database could not be opened
-							
-							fprintf(stderr, "Failed to open old database (%s). SQLError-message: %s\nProgram shutdown to prevent damage to files.", DATABASE, sqlite3_errmsg(database));
+						if ( sqlite3_open( DATABASE, &database ) != SQLITE_OK ) { 
+							//	old database could not be opened
+							fprintf( stderr, "Failed to open old database (%s). SQLError-message: %s\nProgram shutdown to prevent damage to files.", DATABASE, sqlite3_errmsg( database ) );
 							exit(EXIT_FAILURE);
 							
 						}
@@ -73,8 +74,8 @@ char *config_command(char *command, sqlite3 *database)
 					
 				}
 				else {
-					printf("Could not change database to '%s', try again\n", value);
-//					printf("retval (%d) ?= SQLITE_OK (%d) = false?\n", retval, SQLITE_OK);
+
+					printf( "Could not change database to '%s', try again\n", value );
 				}
 			}
 			else if ( equals( variable, "read" ) == 0 ) {
@@ -83,80 +84,83 @@ char *config_command(char *command, sqlite3 *database)
 				
 			}
 			else {
-				printf("No such configurable variable: %s\n", variable);
+				printf( "No such configurable variable: %s\n", variable );
 			}
 		}
 		else if ( ( equals( command, "sv") == 0 ) ||
-		     ( equals( command, "save" ) == 0 ) ) {
+		          ( equals( command, "save" ) == 0 ) ) {
 			// 'sv' or 'save' is save config command
 			save_config( command, database );
-			printf("%s", command);
+			printf( "%s", command );
 			
 		}
 		else if ( ( equals( command, "ld" ) == 0 ) ||
 		          ( equals( command, "load" ) == 0 ) ) {
 			// 'ld' or 'load' load configuration command
-			if ( configurate( command ) ) { // true means it could NOT load config
-				printf("Loading configuration from '%s' failed.\n", CONFIG_FILENAME);
+			if ( configurate( command ) ) {
+				// true means it could NOT load config
+				printf( "Loading configuration from '%s' failed.\n", CONFIG_FILENAME );
 			}
-			else { // configuration loaded
-				printf("Configuration loaded from '%s'.\n", CONFIG_FILENAME);
+			else {
+				// configuration loaded
+				printf( "Configuration from '%s' loaded.\n", CONFIG_FILENAME );
 			}
 			
 		}
 		else if ( ( equals( command, "sw") == 0 ) ||
 		          ( equals( command, "show" ) == 0 ) ) {
 			// 'sw' or 'show' displays current configurations
-			printf("Database: %s\nTable: %s\nMonth: %s\nYear: %s\nRead: %d\n",
-			       DATABASE, TABLE, MONTH, YEAR, (*READ_COUNTER));
+			printf( "Database: %s\nTable: %s\nMonth: %s\nYear: %s\nRead: %d\n",
+			       DATABASE, TABLE, MONTH, YEAR, (*READ_COUNTER) );
 			
 		}
 		else if ( ( equals( command, "yr") == 0 ) ||
 		          ( equals( command, "year" ) == 0 ) ) {
 			// 'yr' or 'year' shows current variable for YEAR
-			printf("Year=%s\n", YEAR);
+			printf( "Year=%s\n", YEAR );
 			
 		}
 		else if ( ( equals( command, "mn" ) == 0 ) ||
 		          ( equals( command, "month" ) == 0 ) ) {
 			// 'mn' or 'month' shows current variable for MONTH
-			printf("Month=%s\n", MONTH);
+			printf( "Month=%s\n", MONTH );
 			
 		}
 		else if ( ( equals( command, "tb" ) == 0 ) ||
 		          ( equals( command, "table" ) == 0 ) ) {
 			// 'tb' or 'table' shows current variable for TABLE
-			printf("Table=%s\n", TABLE);
+			printf( "Table=%s\n", TABLE );
 			
 		}
 		else if ( ( equals( command, "rd" ) == 0 ) ||
 		          ( equals( command, "read") == 0 ) ) {
 			// 'rd' or 'read' shows current variable for READ_COUNTER
-			printf("Read=%d\n", (*READ_COUNTER));
+			printf( "Read=%d\n", (*READ_COUNTER) );
 			
 		}
 		else if ( ( equals( command, "db" ) == 0 ) ||
 		          ( equals( command, "database") == 0 ) ) {
 			// 'db' or 'database' shows current variable for DATABASE
-			printf("Database=%s\n", DATABASE);
+			printf( "Database=%s\n", DATABASE );
 			
 		}
 		else if ( ( equals( command, "bu" ) == 0 ) ||
 		          ( equals( command, "backup" ) == 0 ) ) {
 			// 'bu' or 'backup' stores a copy of the current database
-			if ( revert_or_backup( database, 1 ) ) { // TRUE if backup failed
-
-				snprintf(command, COMMAND_LEN, "Failed to backup, exit program and contact developer!\n");
+			if ( revert_or_backup( database, 1 ) ) {
+				// TRUE if backup failed
+				snprintf( command, COMMAND_LEN, "Failed to backup, exit program and contact developer!\n" );
 				return command;
 				
 			}
+			
 		}
 		else if ( ( equals( command, "rv" ) == 0 ) ||
 		          ( equals( command, "revert" ) == 0 ) ) {
 			// 'rv' or 'revert' restores a previous backup of database
 			if ( revert_or_backup( database, 0 ) ) { // TRUE if revert failed
 
-				snprintf(command, COMMAND_LEN, "Failed to revert: exit program and contact developer!\n");
+				snprintf( command, COMMAND_LEN, "Failed to revert: exit program and contact developer!\n" );
 				return command;
 				
 			}
@@ -164,27 +168,39 @@ char *config_command(char *command, sqlite3 *database)
 		else if ( ( equals( command, "h" ) == 0 ) ||
 		          ( equals( command, "help" ) == 0 ) ) {
 			// 'h' or 'help' prints out commands available within config
-			fprintf(stdout,
-			"Commands withing config:\n%-2s or %8s - %s\n%-2s or %8s - %s\n%-2s or %8s - %s\n%-2s or %8s - %s\n%-2s or %8s - %s\n%-2s or %8s - %s\n%-2s or %8s - %s\n%-2s or %8s - %s\n%-2s or %8s - %s\n%-2s or %8s - %s\n%-2s or %8s - %s\n%14s - %s\n",
-			"h", "help", "Displays this help text",
-			"sv", "save", "Saves the current configuration to file",
-			"ld", "load", "Loads configuration from file",
-			"sw", "show", "Shows the current configuration in program",
-			"db", "database", "Displays current database(v)",
-			"tb", "table", "Displays current table(v) in database",
-			"yr", "year", "Displays default year(v)",
-			"mn", "month", "Displays default month(v)",
-			"rd", "read", "How many lines to skip if continuing reading from file",
-			"bu", "backup", "Backups current database",
-			"rv", "revert", "Reverts the database to backup",
-			"variable=value", "sets variable(v) to new value");
+			// setup
+			int shortLen = 2, longLen = 8, tabulateLen = 2;
+			char *usageString, *tempString;
+			asprintf( &tempString, "%%%ds%%%%-%ds or %%%%%ds - %%%%s\n", tabulateLen, shortLen, longLen );
+			asprintf( &usageString, tempString, " " );		   
+			free( tempString );
+
+			// print
+			printf( "Commands withing config:\n" );
+			printf( usageString, "h", "help", "Displays this help text" );
+			printf( usageString, "sv", "save", "Saves the current configuration to file" );
+			printf( usageString, "ld", "load", "Loads configuration from file" );
+			printf( usageString, "sw", "show", "Shows the current configuration in program" );
+			printf( usageString, "bu", "backup", "Backups current database" );
+			printf( usageString, "rv", "revert", "Reverts the database to backup" );
+			// print special commands
+			printf( "Following commands are able to be redfined,\n" );
+			printf( "%14s - %s\n", "variable=value", "sets variable(v) to new value" );
+			printf( usageString, "db", "database", "Displays current database(v)" );
+			printf( usageString, "tb", "table", "Displays current table(v) in database" );
+			printf( usageString, "yr", "year", "Displays default year(v)" );
+			printf( usageString, "mn", "month", "Displays default month(v)" );
+			printf( usageString, "rd", "read", "How many lines to skip if continuing reading from file" );
+			free( usageString );
 			
+		} else {
+			printf( "No such command: %s\n", command );
 		}
-		else {
-			printf("No such command: %s\n", command);
-		}
-		len = prompt(command, "config");
+		// next command
+		len = prompt( command, "config" );
+		
 	}
+	
 	return command;
 }
 
@@ -224,7 +240,7 @@ char *execute_command(char *command, sqlite3 *database)
 	} else if ( ( equals( command, "help" ) == 0 ) ||
 	            ( equals( command, "h" ) == 0 ) ) {
 		
-		print_help( command );
+		print_help();
 		
 	} else {
 
@@ -258,8 +274,8 @@ int prompt( char *command, char *command_text )
  */
 int prompt_update(char *command, char *command_text)
 {
-	printf("aCBudget.update > %s: ", command_text);
-	int command_len = strlen(fgets(command, COMMAND_LEN, stdin));
+	printf( "aCBudget.update > %s: ", command_text );
+	int command_len = strlen( fgets( command, COMMAND_LEN, stdin ) );
 	command[command_len-1] = '\0';
 	return command_len;
 }
@@ -268,42 +284,49 @@ int prompt_update(char *command, char *command_text)
  *	Select command
  *	Executes commands from user as long as e/end is not typed
  */
-char *myselect(char *command, sqlite3 *database)
+char *myselect( char *command, sqlite3 *database )
 {
 	int len, counter = 0;
-	char *select = calloc(1, sizeof(char) * SELECT_LEN), execute;
-	if (select == NULL) {
-		snprintf(command, COMMAND_LEN, "Error allocating memory for operation");
-	}
-	else {
-		printf("===WARNING===\nAny statements written WILL be executed! Be careful NOT to execute unintended statements on database.\n===WARNING===\n");
-		len = prompt(select, "select");
-		while ((strncmp(select, "e\0", 2) != 0) && (strncmp(select, "end\0", 4) != 0)) {
-			if (strncmp(select, "select ", 7) != 0) {
-				printf("Really execute '%s', ?: ", select);
-				scanf("%c", &execute);
-				clean_stdin();
-			}	else execute = 'y';
-			if (execute == 'y') {
-				#ifdef DEBUG
-				fprintf(stderr, "sql statement: '%s'\n", select);
-				#endif
-				if (regular_execute_sql(select)) {
-					counter++;
-				}
-			}
-			len = prompt(select, "select");
+	char select[SELECT_LEN], execute;
+	
+	printf( "===WARNING===\nAny statements written WILL be executed! Be careful NOT to execute unintended statements on database.\n===WARNING===\n" );
+	len = prompt( select, "select" );
+	while ( ( equals( select, "e" ) != 0 ) && ( equals( select, "end" ) != 0 ) ) {
+
+		if ( strncmp( select, "select ", 7 ) != 0 ) {
+
+			printf( "Really execute '%s', ?: ", select );
+			scanf( "%c", &execute );
+			clean_stdin();
+		}	else {
+			
+			execute = 'y';
+
 		}
-		snprintf(command, COMMAND_LEN, "%d commands excuted\n", counter);
-		free(select);
+		if ( execute == 'y' ) {
+
+			#ifdef DEBUG
+			fprintf( stderr, "sql statement: '%s'\n", select );
+			#endif
+
+			if ( regular_execute_sql( select ) ) {
+				counter++;
+			}
+			
+		}
+		len = prompt( select, "select" );
+		
 	}
+	snprintf( command, COMMAND_LEN, "%d commands excuted\n", counter );
 	return command;
 }
 
 /*
- *
+ * Command gives a menu of possible stats commands
+ * User then choose the number corresponding to desired
+ * stat, and program executes predefined 
  */
-int print_stats(char *command, sqlite3 *database)
+int print_stats( char *command, sqlite3 *database )
 {
 	int	stats_cnt = 0,
 			len = -1,
@@ -312,11 +335,15 @@ int print_stats(char *command, sqlite3 *database)
 	char	select[SELECT_LEN];
 	do {
 		/*	prompt user for command	*/
-		len = prompt(command, "stats");
+		len = prompt( command, "stats" );
 		/*	print stat selected or exit	*/
-		execution = atoi(command);
-		if (strncmp(command, "h\0", 2) == 0)	print_stats_help();
-		else if (strncmp(command, "e\0", 2) == 0)	break;
+		execution = atoi( command );
+		if ( equals( command, "h" ) == 0 ) {
+			print_stats_help();
+		}
+		else if ( equals( command, "e" ) == 0 ) {
+			break;
+		}
 		else if (execution > 0 && execution <= max_commands) {
 			if (execution == 1) {
 				snprintf(select, SELECT_LEN, "select type, sum(amount) as Balance from %s group by type order by type", TABLE);
@@ -371,74 +398,109 @@ int print_stats(char *command, sqlite3 *database)
 			stats_cnt ++;
 		}
 		else	printf("No statistics on '%s'\n", command);
-	}	while (strncmp(command, "e\0", 2) != 0);
+	}	while (strncmp(command, "e", 2) != 0);
 	return stats_cnt;
 }
 
 /*
- *	Method to print help about core commands
+ *	Method to print help about core commands from 'aCBudget.main >'
  */
-void print_help(char *command)
+void print_help( void )
 {
-	printf("aCBudget.help >\n");
-	printf("%-6s - %s\n", "select", "write commands directly to database");
-	printf("%-6s - %s\n", "insert", "for easy insertions to database");
-	printf("%-6s - %s\n", "read", "read insertions from file");
-	printf("%-6s - %s\n", "update", "for easy update (and dividing) of existing entries");
-	printf("%-6s - %s\n", "stats", "provides a menu to print out some predefined stats");
-	printf("%-6s - %s\n", "config", "a menu to configurate database variables");
-	printf("%-6s - %s\n", "help", "this menu");
-	(*command) = '\0';	//	reset command pointer
+	int tabulateLen = 0, commandLen = 7;
+	char *tempString, *usageString;
+	asprintf( &tempString, "%%-%ds%%%%-%%ds - %%%%s\n", tabulateLen );
+	asprintf( &usageString, tempString, "", commandLen );
+	free( tempString );
+
+	printf( "aCBudget.main > command\n" );
+	printf( usageString, "command", "Description" );
+	printf( usageString, "select", "write commands directly to database" );
+	printf( usageString, "insert", "for easy insertions to database" );
+	printf( usageString, "read", "read insertions from file" );
+	printf( usageString, "update", "for easy update (and dividing) of existing entries" );
+	printf( usageString, "stats", "provides a menu to print out some predefined stats" );
+	printf( usageString, "config", "a menu to configurate database variables" );
+	printf( usageString, "help", "shows this menu" );
+	
+	free( usageString );
 }
 
 /*
  *	Tells program a file is to be read
- * Prompts user for location of file.
+ *  Prompts user for location of file.
  *	Then prompts user for filetype, implemented
- *	for files downloaded from DNB Norway(1) and
- *	Sparebanken Sør(2)
+ *	for files downloaded from DNB Norway (1) and
+ *	Sparebanken Sør (2). It is also possible to
+ *  continue reading from a pre-stored position
+ *  of a file (3).
  */
-int read_file(char *command, sqlite3 *database)
+int read_file( char *command, sqlite3 *database )
 {
 	int len, counter = 0;
 	FILE *fp;
 	char filename[50], type;
 	filename[0] = '\0';
-	while (1) {
-		len = prompt(filename, "filename");
-		if ((strncmp(filename, "e\0", 2) == 0) || (strncmp(filename, "end\0", 4) == 0))
-			break;
-		fp = fopen(filename, "r");
-		if (fp == 0) {
-			printf("'%s' does not exist\n", filename);
+	
+	len = prompt(filename, "filename");
+	while ( ( equals( filename, "e" ) & equals( filename, "end" ) ) ) {
+		
+		fp = fopen( filename, "r" );
+		if ( fp == 0 ) {
+			// File could not be found
+			printf( "'%s' does not exist\n", filename );
+			len = prompt(filename, "filename");
 			continue;
+			
 		}
-		printf("DNB (1), Sparebanken Sør (2) file or continue last(3) ? ");
-		scanf("%c", &type);
+		
+		printf( "DNB (1), Sparebanken Sør (2) file or continue last (3) ? " );
+		scanf( "%c", &type );
 		clean_stdin();
-		if (type=='1') {
-			(*READ_COUNTER) = 0;
-			counter += read_DNB(fp, database);
+		
+		if ( type == '1' ) {
+			// DNB file
+			counter += read_DNB( fp, database, 0 );
+			
 		}
-		else if (type=='2') {
-			(*READ_COUNTER) = 0;
-			counter += read_SBS(fp, database);
+		else if ( type == '2' ) {
+			// SBS file
+			counter += read_SBS( fp, database, 0 );
+			
 		}
-		else if (type=='3') {
-			printf("Last DNB (1) or Sparebanken Sør (2) file ? ");
-			scanf("%c", &type);
+		else if ( type == '3' ) {
+			// Continue last
+			printf( "Last DNB (1) or Sparebanken Sør (2) file ? " );
+			scanf( "%c", &type );
 			clean_stdin();
-			if (type=='1')
-				counter += read_DNB(fp, database);
-			else if (type=='2')
-				counter += read_SBS(fp, database);
-			else
+			
+			if ( type == '1' ) {
+				// DNB file
+				counter += read_DNB( fp, database, (*READ_COUNTER) );
+				
+			}
+			else if ( type == '2' ) {
+				// SBS file
+				counter += read_SBS( fp, database, (*READ_COUNTER) );
+
+			}
+			else {
+				// Illegal option
 				printf("%c was not a valid file option.\n", type);
+				
+			}
+			
 		}
-		else
+		else {
+			// Illegal option
 			printf("%c was not a valid option.\n", type);
-		fclose(fp);
+			
+		}
+		
+		fclose( fp );
+		len = prompt( filename, "filename" );
 	}
+	
 	return counter;
 }
 
@@ -447,34 +509,43 @@ int read_file(char *command, sqlite3 *database)
  *	Reads file from start or until user ends at given checkpoints.
  *
  */
-int read_DNB(FILE *fp, sqlite3 *database)
+int read_DNB( FILE *fp, sqlite3 *database, int skip_counter )
 {
 	#if DEBUG
-	fprintf(stderr, "read DNB\n");
+	fprintf( stderr, "read DNB\n" );
 	#endif
-	int counter = 0, error=0, lines = 0;
+	int insertion_counter = 0, error = 0, line_counter = 0;
 	char singleInput,               //  input from user
 		*correct,                   //  legal input values
 		input[INPUT_LEN],			//	input lines
 		insert_into[INSERT_LEN],	//	insert into statement
 		*token;						//	tokens from input
-	insert_t	insert;					//	struct with all variables of an insert as members
-	correct = calloc(4, sizeof(char));
-	strncpy(correct, "ynq", 3);
-	while (fgets(input, INPUT_LEN, fp) != NULL) {
-		lines++;
-		if (strlen(input) <= 1)	continue;	//	empty line
-		else if ((*READ_COUNTER) > 0)	//	skip line
-		{
-			(*READ_COUNTER)--;
+	insert_t insert;				//	struct with all variables of an insert as members
+	correct = calloc( 4, sizeof( char ) );
+	strncpy( correct, "ynq", 3 );
+	
+	while ( fgets( input, INPUT_LEN, fp ) != NULL ) {
+		
+		line_counter++;
+		
+		if ( strlen( input ) <= 1 )	{
+			//	empty line
 			continue;
+			
 		}
+		else if ( skip_counter > 0 ) {
+			//	skip line 
+			skip_counter--;
+			continue;
+			
+		}
+		
 		/*
 		 *	"Dato";"Forklaring";"Rentedato";"Uttak";"Innskudd"
-		 *	"14.12.2014";"Morsom sparing kort avrunding Reservert transaksjon";"";"3,00";""
+		 *	"14.12.2014";"Morsom sparing kort avrunding Reservert transaksjon";"14.12.2014";"3,00";""
 		 */
 		#if DEBUG
-		fprintf(stderr, "input: '%s'", input);
+		fprintf( stderr, "input: '%s'", input );
 		#endif
 		/*
 		 *	Checks if number is on "Uttak" or "Innskudd".
@@ -483,107 +554,137 @@ int read_DNB(FILE *fp, sqlite3 *database)
 		 *	leaving error > 3, and thus gets converted with (-) at beginning
 		 *	to get budgeted correctly when summing in database.
 		 */
-		token = strstr(input, "\"\"");
-		if (token)
-			error = strlen(token);
+		token = strstr( input, "\"\"" );
+		if ( token ) {
+			// Should have commented during implementation
+			error = strlen( token );
+		}
 		#if DEBUG
-		fprintf(stderr, "split token: %s\n", token);
+		fprintf( stderr, "split token: %s\n", token );
 		#endif
-		// Date of purchase in "Dato" field of input.
-		token = strtok(input, "\";");
+		
+		/*
+		 *  Date of purchase in "Dato" field of input.
+		 */
+		token = strtok( input, "\";" );
 		#if DEBUG
-		fprintf(stderr, "date: %s\n", token);
+		fprintf( stderr, "date: %s\n", token );
 		#endif
-		copy_date(insert.date, token);
+		copy_date( insert.date, token );
+		
 		/*
 		 *	Copies "Forklaring" into comment,
 		 *	for further analysis by user
 		 */
-		token = strtok(NULL, "\";");
+		token = strtok( NULL, "\";" );
 		#if DEBUG
-		fprintf(stderr, "comment: %s\n", token);
+		fprintf( stderr, "comment: %s\n", token );
 		#endif
-		strncpy(insert.comment, token, COMMENT_LEN);
+		strncpy( insert.comment, token, COMMENT_LEN );
+		
 		/*
 		 *	Unimportant for my personal budget,
 		 *	Date for interest rate
 		 */
-		token = strtok(NULL, "\";");
+		token = strtok( NULL, "\";" );
 		#if DEBUG
-		fprintf(stderr, "Interest date: %s\n", token);
+		fprintf( stderr, "Interest date: %s\n", token );
 		#endif
-		//	Amount token
-		token = strtok(NULL, "\";");
+		
+		/*
+		 *  Amount token
+		 */
+		token = strtok( NULL, "\";" );
 		#if DEBUG
-		fprintf(stderr, "amount: %s\n", token);
+		fprintf( stderr, "amount: %s\n", token );
 		#endif
-		if (error > 4) {	//	Amount is deposited, decreasing money spent
+		if ( error > 4 ) {
+			//	Amount was deposited, decreasing money spent
 			insert.amount[0] = '-';
-			copy_number(1, insert.amount, token);
-		} else	//	Amount is withdrawn, increasing money spent
-			copy_number(0, insert.amount,token);
+			copy_number( 1, insert.amount, token );
+			
+		} else	{
+			//	Amount is withdrawn, increasing money spent
+			copy_number( 0, insert.amount, token );
+			
+		}
+		
 		/*
 		 *	Prints out rows with equal date and/or amount
 		 *	To check for double-entries.
-		 *	Will remove equal amount check when I've
-		 *	finnished adding my personal information for year 2014
 		 */
-		printf("---Rows on same date:\n");
-		snprintf(insert_into, INSERT_LEN, "select * from %s where date like '%s';", TABLE, insert.date);
+		printf( "---Rows on same date:\n" );
+		snprintf( insert_into, INSERT_LEN, "select * from %s where date like '%s';", TABLE, insert.date );
 		//	Execute sql select statement
-		regular_execute_sql(insert_into);
+		regular_execute_sql( insert_into );
 
         #if DEBUG
-		fprintf(stderr, "%s\n", insert_into);
+		fprintf( stderr, "%s\n", insert_into );
 		#endif
 		/*
 		 *	Shows user information about date, comment and amount
 		 *	And prompts for input about what to do with current insert
 		 *	Add? y_es continues
-		 *	Add? n_o skips insertion, and continue read file
+		 *	Add? n_o skips insertion, and continues read of file
 		 *	Add? q_uit exits reading from file and ends current loop
-		 *
-		 *	I recommend to delete lines added manually until I implement
-		 *	automatic deletion from file after insertion
 		 */
-		printf("---END-ROWS---\n-'%s', '%s', %s\nAdd? (y/n/q): ", insert.date, insert.comment, insert.amount);
-		scanf("%c", &singleInput);
+		printf( "---END-ROWS---\n-'%s', '%s', %s\nAdd? (y/n/q): ", insert.date, insert.comment, insert.amount );
+		scanf( "%c", &singleInput );
 		clean_stdin();
-		while (!correct_input(singleInput, correct)) {
-			printf("Please answer either of: %s\nAdd? ", correct);
-			scanf("%c", &singleInput);
+		
+		while ( !correct_input( singleInput, correct ) ) {
+			//  Illegal input
+			printf( "Please answer either of: %s\nAdd? ", correct );
+			scanf( "%c", &singleInput );
 			clean_stdin();
+			
 		}
-		if (singleInput == 'q') {
-			lines--;
+		
+		if ( singleInput == 'q' ) {
+			// q[uit] reading, decrement counter
+			line_counter--;
 			break;
+			
 		}
-		else if (singleInput == 'y') {
+		else if ( singleInput == 'y' ) {
+			// y[es] data is to be inserted
+			
 			// Add comment
-			printf("Comment: ");
-			fgets(insert.comment, COMMENT_LEN, stdin);
-			insert.comment[strlen(insert.comment)-1] = '\0';
-			//	Generate unique ID for insertion
+			printf( "Comment: " );
+			fgets( insert.comment, COMMENT_LEN, stdin );
+			insert.comment[strlen( insert.comment )-1] = '\0';
+
 			//	Prompts user for type of budget-line
-			printf("Type: ");
-			fgets(insert.type, 16, stdin);
-			insert.type[strlen(insert.type)-1] = '\0'; // end type with \0 instead of \n
-			generate_id(insert.id);
+			printf( "Type: " );
+			fgets(insert.type, TYPE_LEN, stdin);
+			insert.type[strlen( insert.type )-1] = '\0'; // end type with \0 instead of \n
+
+			//	Generate unique ID for insertion
+			generate_id( insert.id );
+			
 			//	Generate SQL statement for insertion based on information given
-			snprintf(insert_into, INSERT_LEN, "insert into %s values('%s', '%s', '%s', %s, '%s');", TABLE, insert.date, insert.comment, insert.type, insert.amount, insert.id);
+			snprintf( insert_into, INSERT_LEN, "insert into %s values('%s', '%s', '%s', %s, '%s');", TABLE, insert.date, insert.comment, insert.type, insert.amount, insert.id );
 			#if DEBUG
-			fprintf(stderr, "%s\n", insert_into);
+			fprintf( stderr, "%s\n", insert_into );
 			#endif
+			
 			//	Execute SQL insertion statement
-			if (!regular_execute_sql(insert_into)) {
+			if ( !regular_execute_sql( insert_into ) ) {
+				//  Execution failed
 				return -1;
+			
 			}
-			counter++;
+			insertion_counter++;
+			
 		}
+			
 	}
-	free(correct);
-	(*READ_COUNTER) = lines;
-	return counter;	// Insertions made
+	
+	free( correct );
+	(*READ_COUNTER) = line_counter;
+	// Returns insertions made
+	return insertion_counter;
+	
 }
 
 /*
@@ -591,27 +692,34 @@ int read_DNB(FILE *fp, sqlite3 *database)
  *	Almost same functionality as DNB method, with
  *	some tweaks to read correctly from a different filetype (.csv)
  */
-int read_SBS(FILE *fp, sqlite3 *database)
+int read_SBS( FILE *fp, sqlite3 *database, int skip_counter )
 {
 	#if DEBUG
 	fprintf(stderr, "read SBS\n");
 	#endif
-	int counter = 0, error, lines = 0;
+	int insertion_counter = 0, line_counter = 0;
 	char singleInput, *correct,
-		input[INPUT_LEN],					//	input
-		insert_into[INSERT_LEN],		//	insert into statemtn
-		dateday[3],								//	dd daydate
-		datemonth[3],							//	mm monthdate
-		*token,										//	tokens from input
-		*datetoken;								//	used to temporarily store date elements from token
+		input[INPUT_LEN],         //	input
+		insert_into[INSERT_LEN],  //	insert into statemtn
+		dateday[3],				  //	dd daydate
+		datemonth[3],			  //	mm monthdate
+		*token,					  //	tokens from input
+		*datetoken;				  //	used to temporarily store date elements from token
 	insert_t insert;
-	correct = calloc(4, sizeof(char));
-	strncpy(correct, "ynq", 4);
+	correct = calloc( 4, sizeof( char ) );
+	strncpy( correct, "ynq", 4 );
 
-	while (fgets(input, INPUT_LEN, fp) != NULL)	{	//	while file has input
-		lines++;
-		if (strlen(input) <= 1)	continue;	//	empty line
-		else if ((*READ_COUNTER) > 0)	{	//	skip line
+	while ( fgets( input, INPUT_LEN, fp ) != NULL )	{
+		//	file has input
+
+		line_counter++;
+		
+		if ( strlen( input ) < 2 ) {
+			//	empty line
+			continue;
+		}
+		else if ((*READ_COUNTER) > 0)	{
+			//	skip line
 			(*READ_COUNTER)--;
 			continue;
 		}
@@ -622,108 +730,135 @@ int read_SBS(FILE *fp, sqlite3 *database)
 		 *	Dato	Forklaring	Ut av konto	Inn på konto
 		 * 30.01.2014	30.01 INFORMATIKKKAFE GAUSTADALLEE OSLO	28,00
 		 */
+		
 		//	First token is interest date, stored to use if date is not given in comment
-		token = xstrtok(input, "	");
-		strncpy(insert.date, token, DATE_LEN);
+		token = xstrtok( input, "	" );
+		strncpy( insert.date, token, DATE_LEN );
 		#if DEBUG
 		fprintf(stderr, "Date: %s\n", token);
 		#endif
+		
 		//	Second token is explanation (comment)
-		token = xstrtok(NULL, "	");
+		token = xstrtok( NULL, "	" );
 		#if DEBUG
-		fprintf(stderr, "Comment: %s\n", token);
+		fprintf( stderr, "Comment: %s\n", token );
 		#endif
-		strncpy(insert.comment, token, COMMENT_LEN);
+		strncpy( insert.comment, token, COMMENT_LEN );
 
         /*
 		 *	Explanation may contain date in beginning
 		 *	which will be date of purchase (my budget date)
 		 *	first datetoken is then the DAY
 		 */
-		datetoken = strtok(token, ".");
-		if (strlen(datetoken) < 4) {
+		datetoken = strtok( token, "." );
+		if ( strlen( datetoken ) < 4 ) {
 			//	Date was found, storing day
-			strncpy(dateday, datetoken, 3);
+			strncpy( dateday, datetoken, 3 );
 			datetoken = strtok(NULL, " ");
+
 			//	Storing month
-			strncpy(datemonth, datetoken, 3);
-			/*
-			 *	Replacing old date with correct format, importing YEAR from header
-			 */
-			snprintf(insert.date, DATE_LEN, "%s-%s-%s", YEAR, datemonth, dateday);
+			strncpy( datemonth, datetoken, 3 );
+			//	Replacing old date with correct format, importing YEAR from header
+			snprintf( insert.date, DATE_LEN, "%s-%s-%s", YEAR, datemonth, dateday );
+			
 		} else {
 			//	No date was found in explanation, prompts user for input
-			datetoken = calloc(1, sizeof(char)*DATE_LEN);
-			strncpy(datetoken, insert.date, DATE_LEN);
-			copy_date(insert.date, datetoken);
-			free(datetoken);
+			datetoken = calloc( 1, sizeof( char ) * DATE_LEN );
+			strncpy( datetoken, insert.date, DATE_LEN );
+			copy_date( insert.date, datetoken );
+			free( datetoken );
+			
 		}
 		
 		//	Last token is amount
 		token = xstrtok(NULL, "	");
-		if (strlen(token) > 1) {
+		if ( strlen( token ) > 1 ) {
 			//	Number was a withdrewal, increasing budget spent
-			copy_number(0, insert.amount, token);
+			copy_number( 0, insert.amount, token );
+			
 		} else {
 			//	Number was a deposit, decreasing budget spent
 			token = xstrtok(NULL, "	");
 			insert.amount[0] = '-';
-			copy_number(1, insert.amount, token);
+			copy_number( 1, insert.amount, token );
+			
 		}
 		#if DEBUG
-		fprintf(stderr, "amount: %s\n", token);
+		fprintf( stderr, "amount: %s\n", token );
 		#endif
 		
 		//	All information gathered, check for equal date in database
-		printf("---Rows on same date:\n");
-		snprintf(insert_into, INSERT_LEN, "select * from %s where date like '%s';", TABLE, insert.date);
-		regular_execute_sql(insert_into);
+		printf( "---Rows on same date:\n" );
+		snprintf( insert_into, INSERT_LEN, "select * from %s where date like '%s';", TABLE, insert.date );
 		#if DEBUG
 		fprintf(stderr, "%s\n", insert_into);
 		#endif
-		
+		if ( !regular_execute_sql( insert_into ) ) {
+			//  Insertion failed
+			fprintf( stderr, "Failed to execute '%s' on database '%s'\n", insert_into, DATABASE );
+			return -1;
+			
+		}
+		printf( "---END-ROWS---\n-'%s', '%s', %s\nAdd? (y/n/q): ",
+		        insert.date, insert.comment, insert.amount );
+
 		//	Prompts user if information is to be added.
-		printf("---END-ROWS---\n-'%s', '%s', %s\nAdd? (y/n/q): ", insert.date, insert.comment, insert.amount);
-		scanf("%c", &singleInput);
+		scanf( "%c", &singleInput );
 		clean_stdin();
-		while (!correct_input(singleInput, correct)) {
-			printf("\rPlease answer either: %s\n", correct);
-			scanf("%c", &singleInput);
+
+		while ( !correct_input( singleInput, correct ) ) {
+			//  Illegal input
+			printf( "\rPlease answer either: %s\n", correct );
+			scanf( "%c", &singleInput );
 			clean_stdin();
+			
 		}
 		
-		if (singleInput == 'y') {
+		if ( singleInput == 'y' ) {
 			//	Replace comment
-			printf("New comment: ");
-			fgets(insert.comment, COMMENT_LEN, stdin);
-			insert.comment[strlen(insert.comment)-1] = '\0';
+			printf( "New comment: " );
+			fgets( insert.comment, COMMENT_LEN, stdin );
+			insert.comment[strlen( insert.comment )-1] = '\0';
+			
 			//	Add a type
-			printf("Type: ");
-			fgets(insert.type, TYPE_LEN, stdin);
-			insert.type[strlen(insert.type)-1] = '\0';
+			printf( "Type: " );
+			fgets( insert.type, TYPE_LEN, stdin );
+			insert.type[strlen( insert.type )-1] = '\0';
+			
 			//	Generate unique ID
-			generate_id(insert.id);
+			generate_id( insert.id );
+			
 			//	Store SQL statement for execution
-			snprintf(insert_into, INSERT_LEN, "insert into %s values('%s', '%s', '%s', %s, '%s');", TABLE, insert.date, insert.comment, insert.type, insert.amount, insert.id);
+			snprintf( insert_into, INSERT_LEN, "insert into %s values('%s', '%s', '%s', %s, '%s');",
+			          TABLE, insert.date, insert.comment, insert.type, insert.amount, insert.id );
+			
 			//	Execute SQL statement
 			#ifdef DEBUG
-			fprintf(stderr, "inserted '%s'\n", insert_into);
+			fprintf( stderr, "inserted '%s'\n", insert_into );
 			#endif
-			if (!regular_execute_sql(insert_into)) {
+			if ( !regular_execute_sql( insert_into ) ) {
+				//  Insertion failed
+				fprintf( stderr, "Failed to execute '%s' on database '%s'\n", insert_into, DATABASE );
 				return -1;
+				
 			}
-			counter++;
+			insertion_counter++;
+			
 		} else if (singleInput == 'n') {
 			#if DEBUG
 			fprintf(stderr, "Values NOT added.\n");
 			#endif
-		} else if (singleInput == 'q') {
-			lines--;
+			
+		} else {
+			// implicit if (singleInput == 'q')
+			line_counter--;
 			break;
+			
 		}
+			
 	}
-	(*READ_COUNTER) = lines;
-	return counter;	//	Insertions made
+	(*READ_COUNTER) = line_counter;
+	return insertion_counter;	//	Insertions made
 }
 
 /*
@@ -732,198 +867,265 @@ int read_SBS(FILE *fp, sqlite3 *database)
 int update(char *command, sqlite3 *database)
 {
 	int updated = 0, sql_len, len;
-	char	commandhelp[COMMAND_LEN],	//	to store usage-help
-			select[SELECT_LEN] ,	//	used by sql-queries
-			comment[COMMENT_LEN],	//	to store comments
-			type[TYPE_LEN],	//	to store types
-			amount[AMOUNT_LEN],	//	to store amounts
-			*day, correct;	//	helpful
+	char commandhelp[COMMAND_LEN],	//	to store usage-help
+		select[SELECT_LEN] ,	    //	used by sql-queries
+		comment[COMMENT_LEN],	    //	to store comments
+		type[TYPE_LEN],	            //	to store types
+		amount[AMOUNT_LEN],	        //	to store amounts
+		day[DAY_LEN], correct;	    //	helpful
+	
 	//	allocating space for id from rownumbers
-	UNIQUE_ID = calloc(1, sizeof(char) * ID_LEN);
-	P_COUNTER = calloc(1, sizeof(int));
-	do {
-		snprintf(commandhelp, COMMAND_LEN, "day in month (%s)", MONTH);
-		len = prompt_update(command, commandhelp);
+	UNIQUE_ID = calloc( 1, sizeof( char ) * ID_LEN );
+	P_COUNTER = calloc( 1, sizeof( int ) );
 
-		//	Check if user wants to quit
-		if ((strncmp(command, "e\0", 2) == 0) || (strncmp(command, "end\0", 4) == 0))	break;
-		else if (command[1] == '.' || command[2] == '.') {
-		    int i = 1;
-		    while (command[i] != '.') i++;
-		    command[i] = 0;
-		    int month = strtol(command+i+1, &command+i+1, 10);
-		    if (month > 0 && month < 13) {
-			(*MONTH)=0;
-			snprintf(MONTH, 3, "%02d", month);
-		    }
-		    else {
-			printf("Month outside range 1-12: %d\n", month);
-			continue;
-		    }
+	while ( equals( command, "e" ) & equals( command, "end" ) ) {
+
+		snprintf( commandhelp, COMMAND_LEN, "day in month (%s)", MONTH );	
+		len = prompt_update( command, commandhelp );
+
+		if ( !( equals( command, "e") & equals( command, "end" ) ) ) {
+			//  User wants to e[nd]
+			break;
 		}
-		else if (strncmp(command, "month=", 6) == 0) {
-		    int i = 0;
-		    len = strtol(command+6, &command, 10);
-		    if (len > 0 && len < 13) {
-			(*MONTH)=0;
-			snprintf(MONTH, 3, "%02d", len);
-		    }
-		    else
-			printf("Month outside range 0-12: %d\n", len);
-		    continue;
-		}
-
-        //	find entries based on day of month
-		snprintf(select, SELECT_LEN,
-		         "select comment, amount, type from %s where date = '%04d-%02d-%02d'",
-		         TABLE, atoi(YEAR), atoi(MONTH), atoi(command));
-		#if DEBUG
-		fprintf(stdout, "Running select on %s: '%s'\n", DATABASE, select);
-		#endif
-		(*P_COUNTER) = 1;	//	reset row count
-		regular_execute_sql(select);
-		if (*P_COUNTER > 1) {
-
-			//	give user ability to divide/update entries
-			day = calloc(1, sizeof(char) * 3);
-			snprintf(day, 3, "%02d", atoi(command));
-			len = prompt_update(command, "number to update"); command[len-1] = '\0';
-			#if DEBUG
-			fprintf(stderr, "day: '%s', command: '%s'\n", day, command);
-			#endif
-			len = atoi(command);
-			if ((strncmp(command, "n\0", 2)!=0) && ((( len < 1) ) || (len >= (*P_COUNTER))))
-				printf("Invalid input: '%s', either pick number in range %d-%d or 'n' for none\n",
-				       command, 1, ((*P_COUNTER)-1));
-			else if (strncmp(command, "n\0", 2) != 0) {
-				(*P_COUNTER) = atoi(command);
-
-				//	row selected for update
-				#if DEBUG
-				fprintf(stderr, "Finding rownumber %d (P_COUNTER: %d)\n", len, (*P_COUNTER));
-				#endif
-				len = snprintf(select, SELECT_LEN,
-				               "select id from %s where date = '%04d-%02d-%02d'",
-				               TABLE, atoi(YEAR), atoi(MONTH), atoi(day));
-
-                //	prepare statement to find correct row for update
-				sqlite3_stmt **statement = calloc(1, 1* sizeof( sqlite3_stmt *));
-				if (sqlite3_prepare_v2(database, select, len, statement, NULL) != SQLITE_OK) {
-					fprintf(stderr, "SQL prepare error from '%s': %s\nContact system creator\n", select, zErrMsg);
-					sqlite3_finalize(*statement);
-					sqlite3_free(zErrMsg);
-					continue;
-				}
-				while ((*P_COUNTER) > 0) {	//	while rownumber not met
-					#if DEBUG
-					fprintf(stderr, " %d", (*P_COUNTER));
-					#endif
-					int sql_result = 0;
-					do {
-						sql_result = sqlite3_step(*statement);	//	fetch next row
-					} while (sql_result == SQLITE_BUSY);
-					if (sql_result == SQLITE_ROW)	{	//	a row was found -> reduce P_COUNTER
-						(*P_COUNTER)--;
-					}
-					else {	//	unexpected behaviour
-						if (sql_result == SQLITE_DONE) {
-							printf("\nNumber chosen was higher than number of rows returned.\n");
-							break;
-						}
-						else if (sql_result == SQLITE_MISUSE) {
-							fprintf(stderr, "\nSQL misuse: Contact system creator\n");
-							break;
-						}
-						else if (sql_result == SQLITE_ERROR) {
-							fprintf(stderr, "\nSQL step-error: Contact system creator\n");
-							break;
-						}
-						continue;
-					}
-				}
-				#if DEBUG
-				fprintf(stderr, "\nCopying unique id into UNIQUE_ID\n");
-				#endif
-				strncpy(UNIQUE_ID, sqlite3_column_text((*statement), 0), ID_LEN);
-
-				/*
-				 *	Prompts user for input on all three values COMMENT, TYPE and AMOUNT.
-				 *	Date is currently not available for update.
-				 *	It is not neccesary to update all three, or anything at all, the program only updates fields with input.
-				 */
-				sql_len = 0;	//	the total length of sql-command initialization
-				sql_len += snprintf(select, SELECT_LEN, "update %s set", TABLE);
-				(*P_COUNTER) = sql_len;
-				len = prompt_update(comment, "comment"); comment[len-1] = '\0';
-				if (len > 1) {	//	comment is to be updated
-					sql_len += snprintf(select+sql_len, SELECT_LEN-sql_len,
-					                    " comment = '%s'", comment);
-				}
-				len = prompt_update(type, "type"); type[len-1] = '\0';
-				if (len > 1) {	//	type is to be updated
-					if (sql_len > (*P_COUNTER)) {	//	need to add comma after previous variable
-						*(select+sql_len++) = ',';
-						*(select+sql_len) = '\0';
-					}
-					sql_len += snprintf(select+sql_len, SELECT_LEN-sql_len, " type = '%s'", type);
-				}
-				len = prompt_update(amount, "amount"); amount[len-1] = '\0';
-				if (len > 1) {	//	amount is to be updated
-					if (sql_len > (*P_COUNTER)) {	//	need to add comma after previous variable
-						*(select+sql_len++) = ',';
-						*(select+sql_len) = '\0';
-					}
-					sql_len += snprintf(select+sql_len, SELECT_LEN-sql_len, " amount = %s", amount);
-					#if DEBUG
-					fprintf(stderr,"select: %s\n", select);
-					#endif
-				}
-				#if DEBUG
-				fprintf(stderr, "comment, type, amount = '%s', '%s', '%s'\n%s\n",
-				        comment, type, amount, select);
-				#endif
-				//snprintf(select, SELECT_LEN, "update %s set comment = '%s', type = '%s', amount = %s where id = '%s'", TABLE, comment, type, amount, UNIQUE_ID);
-				if (sql_len > (*P_COUNTER)) {	//	at least one variable to update
-					(*P_COUNTER) = sql_len;
-					len = strlen(" where id = 'abc12'");	//	length of rest
-					sql_len += snprintf(select+sql_len, SELECT_LEN-sql_len, " where id = '%s';", UNIQUE_ID);
-					if (((*P_COUNTER)+len != sql_len) &&
-					    (sqlite3_exec(database, select, NULL, 0, &zErrMsg) != SQLITE_OK)) {
-						fprintf(stderr, "%d =? %d || SQL error %s\n", (*P_COUNTER)+len, sql_len, zErrMsg);
-						sqlite3_free(zErrMsg);
-						return -1;
-					}
-					updated++;	//	row updated
-					#if DEBUG
-					fprintf(stderr, "Row with id='%s' updated\n", UNIQUE_ID);
-					#endif
-				}
-				//	check if user wants to add another row
-				printf("Want to add another row with new type and same comment on same date?: ");
-				scanf("%c", &correct);
-				clean_stdin();
-				if (correct == 'y') {	//	add another row with new comment, type and amount on same date
-					prompt_update(comment, "comment");
-					prompt_update(type, "type");
-					prompt_update(amount, "amount");
-					generate_id(UNIQUE_ID);																					//	id
-					//	insert into TABLE values (DATE, COMMENT, TYPE, AMOUNT, ID);
-					snprintf(select, SELECT_LEN, "insert into %s values('%04d-%02d-%02d', '%s', '%s', %s, '%s');",
-						TABLE, atoi(YEAR), atoi(MONTH), atoi(day), comment, type, amount, UNIQUE_ID);
-					if (!regular_execute_sql(select)) {
-						free(day);
-						break;
-					}
-				}
-				//	free update specific malloc
-				sqlite3_finalize(*statement);
-				free(statement);
+		else if ( ( len > 0 && command[1] == '.' ) || ( len > 1 && command[2] == '.' ) ) {
+			//  User wants to change month in input
+			int i = 1;
+			while ( command[i] != '.' ) {
+				//  Increase i until '.' is found
+				i++;
+				
 			}
-			//	free day-storage
-			free(day);
-		}	else printf("No entries in given day (%s) of month (%s)\n", command, MONTH);
-	}	while ((strncmp(command, "e\0", 2) != 0) && (strncmp(command, "end\0", 4) != 0));
-	free(P_COUNTER);
-	free(UNIQUE_ID);
+			command[i++] = 0; // split date.month
+			if ( store_month ( &command[i] ) ) {
+				//  Storing of month failed
+				continue;
+			}
+			
+		}
+		else if ( ( strncmp(command, "month=", 6 ) == 0 ) &&
+		          ( !store_month ( &command[6] ) )) {
+			//  User wanted to change month, but month failed
+			continue;
+			
+		}
+
+		//	find entries based on day of month
+		snprintf( select, SELECT_LEN,
+		          "select comment, amount, type from %s where date = '%04d-%02d-%02d'",
+		          TABLE, atoi( YEAR ), atoi( MONTH ), atoi( command ) );
+		#if DEBUG
+		fprintf( stdout, "Running select on %s: '%s'\n", DATABASE, select );
+		#endif
+		
+		//	reset row count
+		(*P_COUNTER) = 1;
+		numbered_execute_sql( select );
+		
+		if (*P_COUNTER < 2) {
+			//  No rows found
+			printf( "No entries in given day (%s) of month (%s)\n", command, MONTH );
+			continue;
+		}
+
+		//	Give user ability to divide/update entries
+		snprintf( day, 3, "%02d", atoi( command ) );
+		len = prompt_update( command, "number to update" );
+		#if DEBUG
+		fprintf( stderr, "day: '%s', command: '%s'\n", day, command );
+		#endif
+
+		len = atoi( command );
+		
+		if ( equals(command, "n" ) == 0 ) {
+			//  User do not want to update any entries, continue
+			continue;
+			
+		}
+		else if ( ( ( len < 1 ) ) || ( len >= (*P_COUNTER) ) ) {
+			//  command unequals "n\0", but user entered number outside range
+			printf( "Invalid input: '%s', either pick number in range %d-%d or 'n' for none\n",
+			        command, 1, (*P_COUNTER)-1 );
+			continue;
+			
+		}
+		
+		//  User entered legal range and not 'n'
+		(*P_COUNTER) = atoi( command );
+			
+		//	row selected for update
+		#if DEBUG
+		fprintf( stderr, "Finding rownumber %d (P_COUNTER: %d)\n", len, (*P_COUNTER) );
+		#endif
+		len = snprintf( select, SELECT_LEN,
+		                "select id from %s where date = '%04d-%02d-%02d'",
+		                TABLE, atoi( YEAR ), atoi( MONTH ), atoi( day ) );
+			
+		//	prepare statement to find correct row for update
+		sqlite3_stmt **statement = calloc( 1, 1* sizeof( sqlite3_stmt* ) );
+		if ( sqlite3_prepare_v2( database, select, len, statement, NULL ) != SQLITE_OK ) {
+			//  Preparation of statement failed
+			fprintf( stderr, "SQL prepare error from '%s': %s\nContact system creator\n",
+			         select, zErrMsg );
+			sqlite3_finalize( (*statement) );
+			sqlite3_free( zErrMsg );
+			break;
+		}
+
+		//  statement prepared
+		len = (*P_COUNTER);
+		while ( (*P_COUNTER) > 0 ) {
+			//	while rownumber not met
+			#if DEBUG
+			fprintf( stderr, " %d", (*P_COUNTER) );
+			#endif
+			
+			int sql_result = 0;
+			do {
+				//	keep trying to fetch next row
+				sql_result = sqlite3_step( (*statement) );
+				
+			} while ( sql_result == SQLITE_BUSY );
+			
+			if ( sql_result == SQLITE_ROW )	{
+				//	a row was found -> reduce P_COUNTER
+				(*P_COUNTER)--;
+				
+			}
+			else if ( sql_result == SQLITE_DONE ) {
+				// number chosen too high
+				printf( "\nNumber chosen (%d) was higher than number of rows returned (%d).\n",
+				        len, len - (*P_COUNTER) );
+				break;
+			}
+			else {
+				//	unexpected behaviour
+				if ( sql_result == SQLITE_MISUSE ) {
+					fprintf( stderr, "\nSQL misuse: Contact system creator\n" );
+					break;
+					
+				}
+				else if ( sql_result == SQLITE_ERROR ) {
+					fprintf( stderr, "\nSQL step-error: Contact system creator\n" );
+					break;
+					
+				}
+				//  Should not happen
+				fprintf( stderr, "\nSQL critical-error: Contact system creator\n");
+				continue;
+			}
+		}
+		#if DEBUG
+		fprintf( stderr, "\nCopying unique id into UNIQUE_ID\n" );
+		#endif
+		strncpy( UNIQUE_ID, sqlite3_column_text( (*statement), 0 ), ID_LEN );
+			
+		/*
+		 *	Prompts user for input on all three values COMMENT, TYPE and AMOUNT.
+		 *	Date is currently not available for update.
+		 *	It is not neccesary to update all three, or anything at all,
+		 *  the program only updates fields with input.
+		 */
+		sql_len = 0;	//	the total length of sql-command initialization
+		sql_len += snprintf( select, SELECT_LEN, "update %s set", TABLE );
+		(*P_COUNTER) = sql_len;
+		
+		len = prompt_update( comment, "comment" );
+		if ( len > 1 ) {
+			//	comment is to be updated
+			sql_len += snprintf( select+sql_len, SELECT_LEN-sql_len,
+			                    " comment = '%s'", comment );
+			
+		}
+		
+		len = prompt_update( type, "type" );
+		if ( len > 1 ) {
+			//	type is to be updated
+			if ( sql_len > (*P_COUNTER) ) {
+				//	need to add comma after previous variable
+				*(select+sql_len++) = ',';
+				*(select+sql_len) = '\0';
+				
+			}
+			sql_len += snprintf( select+sql_len, SELECT_LEN-sql_len,
+			                     " type = '%s'", type );
+			
+		}
+		
+		len = prompt_update( amount, "amount" );
+		if ( len > 1 ) {
+			//	amount is to be updated
+			if ( sql_len > (*P_COUNTER) ) {
+				//	need to add comma after previous variable
+				*(select+sql_len++) = ',';
+				*(select+sql_len) = '\0';
+				
+			}
+			sql_len += snprintf( select+sql_len, SELECT_LEN-sql_len,
+			                     " amount = %s", amount );
+			
+		}
+
+		#if DEBUG
+		fprintf(stderr, "comment, type, amount = '%s', '%s', '%s'\n%s\n",
+		        comment, type, amount, select);
+		#endif
+		
+		if ( sql_len > (*P_COUNTER) ) {
+			//	at least one variable to update
+			(*P_COUNTER) = sql_len;
+			len = strlen( " where id = 'abc12'" );	//	length of rest
+			sql_len += snprintf( select+sql_len, SELECT_LEN-sql_len,
+			                     " where id = '%s';", UNIQUE_ID );
+			if ( ( (*P_COUNTER)+len != sql_len ) &&
+			     ( sqlite3_exec( database, select, NULL, 0, &zErrMsg ) != SQLITE_OK ) ) {
+				//  Illegal range or execution failed
+				fprintf( stderr, "%d =? %d || SQL error %s\n",
+				         (*P_COUNTER)+len, sql_len, zErrMsg );
+				sqlite3_free( zErrMsg );
+				return -1;
+				
+			}
+			//	row updated
+			updated++;	
+			#if DEBUG
+			fprintf( stderr, "Row with id='%s' updated:\n%s\n", UNIQUE_ID, select );
+			#endif
+			
+		}
+		
+		//	check if user wants to add another row
+		printf( "Want to add another row with new type and same comment on same date?: " );
+		scanf( "%c", &correct );
+		clean_stdin();
+		
+		if ( correct == 'y' ) {
+			//	add another row with new comment, type and amount on same date
+			prompt_update( comment, "comment" );
+			prompt_update( type, "type" );
+			prompt_update( amount, "amount" );
+			generate_id( UNIQUE_ID );
+			
+			//	insert into TABLE values (DATE, COMMENT, TYPE, AMOUNT, ID);
+			snprintf( select, SELECT_LEN,
+			          "insert into %s values('%04d-%02d-%02d', '%s', '%s', %s, '%s');",
+			          TABLE, atoi( YEAR ), atoi( MONTH ), atoi( day ),
+			          comment, type, amount, UNIQUE_ID );
+			
+			if ( !regular_execute_sql( select ) ) {
+				//  SQL execution failed
+				break;
+				
+			}
+		}
+		
+		//	free update specific malloc
+		sqlite3_finalize(*statement);
+		free( statement );
+		
+	}
+	
+	free( P_COUNTER );
+	free( UNIQUE_ID );
 	return updated;
+	
 }

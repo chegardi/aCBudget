@@ -7,4 +7,5 @@ int equals( char *challenger, char *matcher );
 int	free_all( void );
 void generate_id( char *id );
 int print_stats_help( void );
+int store_month( char *string_month );
 char *xstrtok( char *line, char *delims );
