@@ -178,6 +178,7 @@ char *config_command( char *command, sqlite3 *database )
 			// print
 			printf( "Commands withing config:\n" );
 			printf( usageString, "h", "help", "Displays this help text" );
+			printf( usageString, "e", "end", "Ends the configuration session" );
 			printf( usageString, "sv", "save", "Saves the current configuration to file" );
 			printf( usageString, "ld", "load", "Loads configuration from file" );
 			printf( usageString, "sw", "show", "Shows the current configuration in program" );
@@ -252,35 +253,6 @@ char *execute_command(char *command, sqlite3 *database)
 }
 
 /*
- *	Prompts for and stores next command
- */
-int prompt( char *command, char *command_text )
-{
-	printf( "aCBudget.%s > ", command_text );
-	if ( !fgets( command, COMMAND_LEN, stdin ) ) { // EOT if 0
-
-		free_all();
-		exit(4);
-		
-	}
-	
-	int command_len = strlen( command );
-	command[command_len-1] = '\0';
-	return command_len;
-}
-
-/*
- *	Need a slightly different command_argument for the update command
- */
-int prompt_update(char *command, char *command_text)
-{
-	printf( "aCBudget.update > %s: ", command_text );
-	int command_len = strlen( fgets( command, COMMAND_LEN, stdin ) );
-	command[command_len-1] = '\0';
-	return command_len;
-}
-
-/*
  *	Select command
  *	Executes commands from user as long as e/end is not typed
  */
@@ -319,6 +291,31 @@ char *myselect( char *command, sqlite3 *database )
 	}
 	snprintf( command, COMMAND_LEN, "%d commands excuted\n", counter );
 	return command;
+}
+
+/*
+ *	Method to print help about core commands from 'aCBudget.main >'
+ */
+void print_help( void )
+{
+	int tabulateLen = 0, commandLen = 7;
+	char *tempString, *usageString;
+	asprintf( &tempString, "%%-%ds%%%%-%%ds - %%%%s\n", tabulateLen );
+	asprintf( &usageString, tempString, "", commandLen );
+	free( tempString );
+
+	printf( "aCBudget.main > command\n" );
+	printf( usageString, "command", "Description" );
+	printf( usageString, "select", "write commands directly to database" );
+	printf( usageString, "insert", "for easy insertions to database" );
+	printf( usageString, "read", "read insertions from file" );
+	printf( usageString, "update", "for easy update (and dividing) of existing entries" );
+	printf( usageString, "stats", "provides a menu to print out some predefined stats" );
+	printf( usageString, "config", "a menu to configurate database variables" );
+	printf( usageString, "help", "shows this menu" );
+	printf( usageString, "q", "quits the program" );
+	
+	free( usageString );
 }
 
 /*
@@ -403,27 +400,32 @@ int print_stats( char *command, sqlite3 *database )
 }
 
 /*
- *	Method to print help about core commands from 'aCBudget.main >'
+ *	Prompts for and stores next command
  */
-void print_help( void )
+int prompt( char *command, char *command_text )
 {
-	int tabulateLen = 0, commandLen = 7;
-	char *tempString, *usageString;
-	asprintf( &tempString, "%%-%ds%%%%-%%ds - %%%%s\n", tabulateLen );
-	asprintf( &usageString, tempString, "", commandLen );
-	free( tempString );
+	printf( "aCBudget.%s > ", command_text );
+	if ( !fgets( command, COMMAND_LEN, stdin ) ) { // EOT if 0
 
-	printf( "aCBudget.main > command\n" );
-	printf( usageString, "command", "Description" );
-	printf( usageString, "select", "write commands directly to database" );
-	printf( usageString, "insert", "for easy insertions to database" );
-	printf( usageString, "read", "read insertions from file" );
-	printf( usageString, "update", "for easy update (and dividing) of existing entries" );
-	printf( usageString, "stats", "provides a menu to print out some predefined stats" );
-	printf( usageString, "config", "a menu to configurate database variables" );
-	printf( usageString, "help", "shows this menu" );
+		free_all();
+		exit(4);
+		
+	}
 	
-	free( usageString );
+	int command_len = strlen( command );
+	command[command_len-1] = '\0';
+	return command_len;
+}
+
+/*
+ *	Need a slightly different command_argument for the update command
+ */
+int prompt_update(char *command, char *command_text)
+{
+	printf( "aCBudget.update > %s: ", command_text );
+	int command_len = strlen( fgets( command, COMMAND_LEN, stdin ) );
+	command[command_len-1] = '\0';
+	return command_len;
 }
 
 /*
@@ -878,6 +880,10 @@ int update(char *command, sqlite3 *database)
 	UNIQUE_ID = calloc( 1, sizeof( char ) * ID_LEN );
 	P_COUNTER = calloc( 1, sizeof( int ) );
 
+	printf( "Enter date 'dd' to update\n" );
+	printf( "If month is wrong, type 'dd.mm' to check date 'dd' in month 'mm'\n" );
+	printf( "Type 'e' or 'end' to quit\n" );
+	
 	while ( equals( command, "e" ) & equals( command, "end" ) ) {
 
 		snprintf( commandhelp, COMMAND_LEN, "day in month (%s)", MONTH );	
@@ -886,6 +892,14 @@ int update(char *command, sqlite3 *database)
 		if ( !( equals( command, "e") & equals( command, "end" ) ) ) {
 			//  User wants to e[nd]
 			break;
+		}
+		else if ( ( !equals( command, "h" ) || !equals( command, "help" ) ) ) {
+			//  User wants h[elp]
+				printf( "Enter date 'dd' to update\n" );
+				printf( "If month is wrong, type 'dd.mm' to check date 'dd' in month 'mm'\n" );
+				printf( "Type 'e' or 'end' to quit\n" );
+				continue;
+			
 		}
 		else if ( ( len > 0 && command[1] == '.' ) || ( len > 1 && command[2] == '.' ) ) {
 			//  User wants to change month in input

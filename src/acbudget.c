@@ -9,19 +9,19 @@ int argParser( int argc, char *argv[] )
 	for ( i=0; i<argc; i++ ) {
 
 		if ( argv[i][0]=='-' ) {
-			// help [-h] [--help]
+			
 			if ( strncmp( argv[i], "--help", 6 ) == 0 ||
 			     strncmp( argv[i], "-h", 2 ) == 0 ) {
-
+				// help [-h] [--help]
 				usage();
-				// return '0' for main to know help was called
+				// return '0' for main() to know help was called
 				return 0;
 				
 			}
-			// verbose [-v] [--verbose]
 			else if ( strncmp( argv[i], "--verbose", 9 ) == 0 ||
 			          strncmp( argv[i], "-v", 2 ) == 0 ) {
-				
+				// verbose [-v] [--verbose]
+				// not implemented in code yet
 				options |= 0x02;
 				
 			}
