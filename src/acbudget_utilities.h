@@ -1,5 +1,4 @@
 //	utility functions
-
 char* copy_date( char* date, char* token );
 void copy_number( int offset, char* to, char* from );
 char correct_input( char in, char *correct );

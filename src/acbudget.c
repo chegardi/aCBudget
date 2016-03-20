@@ -2,33 +2,54 @@
 
 /*
  * Checks and sets argument-bits accordingly.
+ * 0   0- --help [-h] -> help was called, stops main
+ * 1   1- OPTION-BIT  -> implies argParse were successful
+ * 2   2- --verbose [-v]
+ * 3   4- --amount-only [-a]
+ * 4   8- Unassigned
+ * 5  16- Unassigned
+ * 6  32- Unassigned
+ * 7  64- Unassigned
+ * 8   S- Signed bit, should not happen.
  */
-int argParser( int argc, char *argv[] )
+char argParser( int argc, char *argv[] )
 {
-	int i, j, options = 0;
+	uint32_t i, j;
+	char options = 0;
 	for ( i=0; i<argc; i++ ) {
-
+		
 		if ( argv[i][0]=='-' ) {
 			
-			if ( strncmp( argv[i], "--help", 6 ) == 0 ||
-			     strncmp( argv[i], "-h", 2 ) == 0 ) {
+			if ( equals( argv[i], "--help" ) == 0 ||
+			     equals( argv[i], "-h" ) == 0 ) {
 				// help [-h] [--help]
 				usage();
 				// return '0' for main() to know help was called
 				return 0;
-				
-			}
-			else if ( strncmp( argv[i], "--verbose", 9 ) == 0 ||
-			          strncmp( argv[i], "-v", 2 ) == 0 ) {
+				     
+			} else if ( equals( argv[i], "--verbose" ) == 0 ||
+			            equals( argv[i], "-v" ) == 0 ) {
 				// verbose [-v] [--verbose]
-				// not implemented in code yet
+				// will be implemented several prints in time
 				options |= 0x02;
 				
+			} else if ( equals( argv[i], "--amount-only" ) == 0 ||
+			            equals( argv[i], "-a" ) == 0 )
+			{
+				// amount only during read [-a] [--amount-only]
+				options |= 0x04;
 			}
 		}
 	}
 	// 1 means option were set
 	options |= 0x01;
+	
+	if ( options & 2 ) {
+		if ( options & 4 ) {
+			printf( "Amount only during read enabled.\n" );
+		}
+	}
+
 	return options;
 }
 
@@ -155,15 +176,15 @@ int configurate( char *command )
  */
 int main( int argc, char **argv )
 {
-	int options = argParser( argc, argv );
+	SETTINGS = argParser( argc, argv );
 	
-	if ( options < 1 ) {
+	if ( SETTINGS < 1 ) {
 
 		/* options < 0 is illegal
 		   options == 0 means help was called
 		   all positive values are legal
 		*/
-		return options;
+		return SETTINGS;
 		
 	}
 	

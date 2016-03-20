@@ -1,5 +1,6 @@
 char *config_command( char *command, sqlite3 *database );
 char *execute_command( char *command, sqlite3 *database );
+char insertRequest( char *correct, insert_t insert, char *insert_into );
 int prompt( char *command, char *command_text );
 int get_update_command( char *command, char *command_text );
 void print_help( void );

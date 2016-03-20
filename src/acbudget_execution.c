@@ -253,6 +253,90 @@ char *execute_command(char *command, sqlite3 *database)
 }
 
 /*
+ *
+ */
+char insertRequest( char *correct, insert_t insert, char *insert_into ) {
+	char singleInput = 0;
+	
+	snprintf( insert_into,
+	          INSERT_LEN,
+	          "select * from %s where date like '%s';",
+	          TABLE,
+	          insert.date );
+	if ( SETTINGS&4 ) {
+		// Amount exact only, added in the end of insert_into string
+		snprintf( insert_into + (int)(strlen( insert_into )-1 ),
+		          INSERT_LEN,
+		          " and amount like %s;", insert.amount );
+		
+	}
+#if DEBUG
+	fprintf(stderr, "%s\n", insert_into);
+#endif
+	if ( !regular_execute_sql( insert_into ) ) {
+		//  Insertion failed
+		fprintf( stderr, "Failed to execute '%s' on database '%s'\n", insert_into, DATABASE );
+		return -1;
+			
+	}
+	printf( "---END-ROWS---\n-'%s', '%s', %s\nAdd? (y/n/q): ",
+	        insert.date, insert.comment, insert.amount );
+
+	//	Prompts user if information is to be added.
+	scanf( "%c", &singleInput );
+	clean_stdin();
+
+	/*
+	 *	Shows user information about date, comment and amount
+	 *	And prompts for input about what to do with current insert
+	 *	Add? y_es continues
+	 *	Add? n_o skips insertion, and continues read of file
+	 *	Add? q_uit exits reading from file and ends current loop
+	 */
+	while ( !correct_input( singleInput, correct ) ) {
+		//  Illegal input
+		printf( "Please answer either of: %s\nAdd? ", correct );
+		scanf( "%c", &singleInput );
+		clean_stdin();
+		
+	}
+	if ( singleInput == 'y' ) {
+		// y[es] data is to be inserted
+		
+		// Add comment
+		printf( "Comment: " );
+		fgets( insert.comment, COMMENT_LEN, stdin );
+		insert.comment[strlen( insert.comment )-1] = '\0';
+		
+		//	Prompts user for type of budget-line
+		printf( "Type: " );
+		fgets(insert.type, TYPE_LEN, stdin);
+		insert.type[strlen( insert.type )-1] = '\0'; // end type with \0 instead of \n
+		
+		//	Generate unique ID for insertion
+		generate_id( insert.id );
+		
+		//	Generate SQL statement for insertion based on information given
+		snprintf( insert_into, INSERT_LEN, "insert into %s values('%s', '%s', '%s', %s, '%s');",
+		          TABLE, insert.date, insert.comment, insert.type, insert.amount, insert.id );
+#if DEBUG
+		fprintf( stderr, "%s\n", insert_into );
+#endif
+		
+		//	Execute SQL insertion statement
+		if ( !regular_execute_sql( insert_into ) ) {
+			//  Execution failed
+			printf( "Execution failed on '%s'\n", insert_into );
+			return -1;
+			
+		}
+		
+	}
+	return singleInput;
+	
+}
+
+/*
  *	Select command
  *	Executes commands from user as long as e/end is not typed
  */
@@ -610,74 +694,29 @@ int read_DNB( FILE *fp, sqlite3 *database, int skip_counter )
 			copy_number( 0, insert.amount, token );
 			
 		}
-		
-		/*
-		 *	Prints out rows with equal date and/or amount
-		 *	To check for double-entries.
-		 */
-		printf( "---Rows on same date:\n" );
-		snprintf( insert_into, INSERT_LEN, "select * from %s where date like '%s';", TABLE, insert.date );
-		//	Execute sql select statement
-		regular_execute_sql( insert_into );
 
-        #if DEBUG
-		fprintf( stderr, "%s\n", insert_into );
-		#endif
-		/*
-		 *	Shows user information about date, comment and amount
-		 *	And prompts for input about what to do with current insert
-		 *	Add? y_es continues
-		 *	Add? n_o skips insertion, and continues read of file
-		 *	Add? q_uit exits reading from file and ends current loop
-		 */
-		printf( "---END-ROWS---\n-'%s', '%s', %s\nAdd? (y/n/q): ", insert.date, insert.comment, insert.amount );
-		scanf( "%c", &singleInput );
-		clean_stdin();
-		
-		while ( !correct_input( singleInput, correct ) ) {
-			//  Illegal input
-			printf( "Please answer either of: %s\nAdd? ", correct );
-			scanf( "%c", &singleInput );
-			clean_stdin();
+		// If test makes sure there actually is something to add.
+		if ( strlen( insert.date ) > 0 && atol( insert.amount ) != 0 ) {
+			/*
+			 *	Prints out rows with equal date and/or amount
+			 *	To check for double-entries.
+			 */
 			
-		}
-		
-		if ( singleInput == 'q' ) {
-			// q[uit] reading, decrement counter
-			line_counter--;
-			break;
-			
-		}
-		else if ( singleInput == 'y' ) {
-			// y[es] data is to be inserted
-			
-			// Add comment
-			printf( "Comment: " );
-			fgets( insert.comment, COMMENT_LEN, stdin );
-			insert.comment[strlen( insert.comment )-1] = '\0';
-
-			//	Prompts user for type of budget-line
-			printf( "Type: " );
-			fgets(insert.type, TYPE_LEN, stdin);
-			insert.type[strlen( insert.type )-1] = '\0'; // end type with \0 instead of \n
-
-			//	Generate unique ID for insertion
-			generate_id( insert.id );
-			
-			//	Generate SQL statement for insertion based on information given
-			snprintf( insert_into, INSERT_LEN, "insert into %s values('%s', '%s', '%s', %s, '%s');", TABLE, insert.date, insert.comment, insert.type, insert.amount, insert.id );
-			#if DEBUG
-			fprintf( stderr, "%s\n", insert_into );
-			#endif
-			
-			//	Execute SQL insertion statement
-			if ( !regular_execute_sql( insert_into ) ) {
-				//  Execution failed
-				return -1;
-			
+			printf( "---Rows on same date:\n" );
+			if ( ( singleInput = insertRequest( correct, insert, insert_into ) ) != 'y' ) {
+				if (singleInput == 'n') {
+#if DEBUG
+					fprintf(stderr, "Values NOT added.\n");
+#endif
+				
+				} else {
+					// implicit if (singleInput == 'q')
+					line_counter--;
+					break;
+				
+				}
 			}
 			insertion_counter++;
-			
 		}
 			
 	}
@@ -788,74 +827,25 @@ int read_SBS( FILE *fp, sqlite3 *database, int skip_counter )
 		#if DEBUG
 		fprintf( stderr, "amount: %s\n", token );
 		#endif
-		
-		//	All information gathered, check for equal date in database
-		printf( "---Rows on same date:\n" );
-		snprintf( insert_into, INSERT_LEN, "select * from %s where date like '%s';", TABLE, insert.date );
-		#if DEBUG
-		fprintf(stderr, "%s\n", insert_into);
-		#endif
-		if ( !regular_execute_sql( insert_into ) ) {
-			//  Insertion failed
-			fprintf( stderr, "Failed to execute '%s' on database '%s'\n", insert_into, DATABASE );
-			return -1;
-			
-		}
-		printf( "---END-ROWS---\n-'%s', '%s', %s\nAdd? (y/n/q): ",
-		        insert.date, insert.comment, insert.amount );
 
-		//	Prompts user if information is to be added.
-		scanf( "%c", &singleInput );
-		clean_stdin();
-
-		while ( !correct_input( singleInput, correct ) ) {
-			//  Illegal input
-			printf( "\rPlease answer either: %s\n", correct );
-			scanf( "%c", &singleInput );
-			clean_stdin();
-			
-		}
+		if ( strlen( insert.date ) > 0 && atol( insert.amount ) != 0 ) {
 		
-		if ( singleInput == 'y' ) {
-			//	Replace comment
-			printf( "New comment: " );
-			fgets( insert.comment, COMMENT_LEN, stdin );
-			insert.comment[strlen( insert.comment )-1] = '\0';
-			
-			//	Add a type
-			printf( "Type: " );
-			fgets( insert.type, TYPE_LEN, stdin );
-			insert.type[strlen( insert.type )-1] = '\0';
-			
-			//	Generate unique ID
-			generate_id( insert.id );
-			
-			//	Store SQL statement for execution
-			snprintf( insert_into, INSERT_LEN, "insert into %s values('%s', '%s', '%s', %s, '%s');",
-			          TABLE, insert.date, insert.comment, insert.type, insert.amount, insert.id );
-			
-			//	Execute SQL statement
-			#ifdef DEBUG
-			fprintf( stderr, "inserted '%s'\n", insert_into );
-			#endif
-			if ( !regular_execute_sql( insert_into ) ) {
-				//  Insertion failed
-				fprintf( stderr, "Failed to execute '%s' on database '%s'\n", insert_into, DATABASE );
-				return -1;
+			//	All information gathered, check for equal date in database
+			printf( "---Rows on same date:\n" );
+			if ( singleInput = insertRequest( correct, insert, insert_into ) != 'y' ) {
+				if (singleInput == 'n') {
+#if DEBUG
+					fprintf(stderr, "Values NOT added.\n");
+#endif
 				
+				} else {
+					// implicit if (singleInput == 'q')
+					line_counter--;
+					break;
+				
+				}
 			}
 			insertion_counter++;
-			
-		} else if (singleInput == 'n') {
-			#if DEBUG
-			fprintf(stderr, "Values NOT added.\n");
-			#endif
-			
-		} else {
-			// implicit if (singleInput == 'q')
-			line_counter--;
-			break;
-			
 		}
 			
 	}
@@ -878,7 +868,7 @@ int update(char *command, sqlite3 *database)
 	
 	//	allocating space for id from rownumbers
 	UNIQUE_ID = calloc( 1, sizeof( char ) * ID_LEN );
-	P_COUNTER = calloc( 1, sizeof( int ) );
+	P_COUNTER = calloc( 1, sizeof( uint32_t ) );
 
 	printf( "Enter date 'dd' to update\n" );
 	printf( "If month is wrong, type 'dd.mm' to check date 'dd' in month 'mm'\n" );
